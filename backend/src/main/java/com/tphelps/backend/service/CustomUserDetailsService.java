@@ -1,0 +1,163 @@
+package com.tphelps.backend.service;
+
+import com.tphelps.backend.repository.AccountRepository;
+import com.tphelps.backend.jwt.JwtTokenGenerator;
+import com.tphelps.backend.repository.AuthenticationRepository;
+import com.tphelps.backend.dtos.CreateAccountRequest;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseCookie;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.User;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+import test.generated.tables.pojos.Users;
+import org.springframework.security.core.userdetails.UserDetailsService;
+
+import java.time.LocalDateTime;
+import java.util.List;
+
+@Service
+public class CustomUserDetailsService implements UserDetailsService {
+
+    private final AuthenticationRepository authenticationRepository;
+    private final PasswordEncoder passwordEncoder;
+    private final AccountRepository accountRepository;
+    private final JwtTokenGenerator jwtTokenGenerator;
+
+    @Autowired
+    public CustomUserDetailsService(AuthenticationRepository authenticationRepository,
+                                    PasswordEncoder passwordEncoder,
+                                    AccountRepository accountRepository, JwtTokenGenerator jwtTokenGenerator) {
+        this.authenticationRepository = authenticationRepository;
+        this.passwordEncoder = passwordEncoder;
+        this.accountRepository = accountRepository;
+        this.jwtTokenGenerator = jwtTokenGenerator;
+    }
+
+    /**
+     * Calls repository to find a user by username
+     *
+     * @param username the username identifying the user whose data is required.
+     * @return - a {@link UserDetails} object
+     * @throws UsernameNotFoundException - on user not found in database
+     */
+    @Override
+    public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
+        Users customer = authenticationRepository.getUser(username);
+        if(customer == null) {
+            throw new UsernameNotFoundException(username);
+        }
+        List<GrantedAuthority> authorities = List.of(new SimpleGrantedAuthority(customer.getRole()));
+
+        return new User(customer.getUsername(), customer.getPassword(), authorities);
+    }
+
+
+    /**
+     * Service method for changing a users password
+     * @param principal - the UserDetails principal object to get the username
+     * @param oldPassword - users old password
+     * @param newPassword - users new password
+     */
+    public void changePassword(UserDetails principal, String oldPassword, String newPassword) {
+
+        String username = verifyPassword(principal, oldPassword);
+
+        String encodedPassword =  passwordEncoder.encode(newPassword);
+
+        accountRepository.changePassword(username, encodedPassword);
+
+        // fetch the updated userDetails
+        UserDetails updatedUserDetails = loadUserByUsername(username);
+
+        // get the new authentication object
+        Authentication newAuthentication = new UsernamePasswordAuthenticationToken(
+                updatedUserDetails,
+                null,
+                updatedUserDetails.getAuthorities());
+
+        // reset the security context with the new authentication object
+        SecurityContextHolder.getContext().setAuthentication(newAuthentication);
+    }
+
+    /**
+     * Service method for deleting an account
+     * @param principal - the UserDetails object
+     * @param password - the password to verify
+     */
+    public void deleteAccount(UserDetails principal, String password) {
+        String username = verifyPassword(principal, password);
+
+        accountRepository.deleteAccount(username);
+
+        // set user to unauthenticated
+        SecurityContextHolder.getContext().setAuthentication(null);
+    }
+
+    /**
+     * Create a user in the database
+     * @param request - a {@link CreateAccountRequest} with user details
+     * @return a response cookie for user
+     */
+    public ResponseCookie createUser(CreateAccountRequest request) {
+        String username = request.username();
+        String email  = request.email();
+        String password = request.password(); // is this unsafe to do this here? notice in Authentication object, Credentials: [Protected]
+        String role = "USER";
+
+        // hash the password using jBCrypt
+        String hashedPassword = passwordEncoder.encode(password);
+
+        try {
+            // save the user to the database
+            authenticationRepository.createUser(new Users(null, email, username, hashedPassword, role, LocalDateTime.now()));
+        }catch(Exception e) {
+            e.printStackTrace();
+            return null;
+        }
+
+        return generateUserCookie(username);
+    }
+
+    /**
+     * Verify a users password by principal and password against the db
+     * @param principal - user details object of principal
+     * @param password - password to check against db
+     * @return - the username
+     */
+    private String verifyPassword(UserDetails principal, String password) {
+        String username = principal.getUsername();
+
+        UserDetails userDetails = loadUserByUsername(username);
+        if(!passwordEncoder.matches(password, userDetails.getPassword())) {
+            throw new BadCredentialsException("Invalid old password");
+        }
+
+        return username;
+    }
+
+    /**
+     * Authenticate user against the db
+     * @param principal - the username
+     * @return - a response cookie for user, else null
+     */
+    public ResponseCookie generateUserCookie(Object principal) {
+        String username = principal.toString();
+
+        String jws = jwtTokenGenerator.getJwt(username);
+
+        // return a response cookie to be stored in the front end
+        return ResponseCookie.from("jwt", jws)
+                .httpOnly(true)
+                .path("/")
+                .maxAge(3600)
+                .build();
+    }
+}
