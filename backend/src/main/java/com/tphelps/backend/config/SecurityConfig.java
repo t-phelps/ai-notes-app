@@ -1,6 +1,8 @@
 package com.tphelps.backend.config;
 
 
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.jooq.ExceptionTranslatorExecuteListener;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -21,11 +23,18 @@ import java.util.List;
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
+    private final JwtAuthEntryPoint jwtAuthEntryPoint;
+
+    @Autowired
+    public SecurityConfig(JwtAuthEntryPoint jwtAuthEntryPoint) {
+        this.jwtAuthEntryPoint = jwtAuthEntryPoint;
+    }
 
     @Bean
     public AuthenticationManager authenticationManager(UsernamePwdAuthenticationProvider provider) {
         return new ProviderManager(provider);
     }
+
     /**
      * SecurityFilterChain method to define which api endpoints we should require authorization on
      * as well as filter per JWT authentication and define our own auth provider
@@ -34,31 +43,41 @@ public class SecurityConfig {
      * @throws Exception - on error
      */
     @Bean
-    SecurityFilterChain springSecurityFilterChain(HttpSecurity http,
+    SecurityFilterChain securityFilterChain(HttpSecurity http,
                                                   UsernamePwdAuthenticationProvider usernamePwdAuthenticationProvider) throws Exception {
         http
+                // disable CSRF since we are using JWT
                 .csrf(AbstractHttpConfigurer::disable)
+                // configure CORS to allow frontend requests
                 .cors(cors -> cors.configurationSource(request -> {
                     CorsConfiguration config = new CorsConfiguration();
                     config.setAllowCredentials(true);
-                    config.setAllowedOrigins(List.of("http://localhost:FRONTEND_PORT"));
+                    config.setAllowedOrigins(List.of("http://localhost:3000"));
                     config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
                     config.setAllowedHeaders(List.of("*"));
                     return config;
                 }))
+                // handle unauthorized requests
+                .exceptionHandling(exception ->
+                        exception.authenticationEntryPoint(jwtAuthEntryPoint))
+                // define which endpoints require authentication
                 .authorizeHttpRequests(requests -> {
                     requests
                             .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                            .requestMatchers("/auth/login", "/auth/create").permitAll()
+                            .requestMatchers("/auth/login", "/auth/create", "/stripe/create-checkout-session").permitAll()
                             .requestMatchers("/OTHER______ENDPOINTS").authenticated()
                             .anyRequest().authenticated();
                 })
+                // disable default login forms
                 .httpBasic(AbstractHttpConfigurer::disable)
                 .formLogin(AbstractHttpConfigurer::disable)
+                // make session stateless since JWT is used
                 .sessionManagement(session ->
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
 
+        // use custom authentication provider
         http.authenticationProvider(usernamePwdAuthenticationProvider);
+        // add our JWT filter before Spring Security's UsernamePasswordAuthenticationFilter
         http.addFilterBefore(jwtAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
@@ -83,3 +102,4 @@ public class SecurityConfig {
         return new JwtAuthenticationFilter();
     }
 }
+

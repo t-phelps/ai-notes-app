@@ -31,6 +31,19 @@
     </properties>
     <build>
         <plugins>
+            <plugin>
+                <groupId>org.flywaydb</groupId>
+                <artifactId>flyway-maven-plugin</artifactId>
+                <version>11.7.2</version>
+                <configuration>
+                    <url>jdbc:postgresql://localhost:5434/mydb</url>
+                    <user>tphelps</user>
+                    <password>phelps99</password>
+                    <locations>
+                        <location>filesystem:src/main/resources/db/migration</location>
+                    </locations>
+                </configuration>
+            </plugin>
             <!-- jOOQ Code Generation -->
             <plugin>
                 <groupId>org.jooq</groupId>
@@ -48,15 +61,15 @@
                 <configuration>
                     <jdbc>
                         <driver>org.postgresql.Driver</driver>
-                        <url>jdbc:postgresql://localhost:port/dbname</url>
-                        <user>username</user>
-                        <password>password</password>
+                        <url>jdbc:postgresql://localhost:5434/mydb</url>
+                        <user>tphelps</user>
+                        <password>phelps99</password>
                     </jdbc>
                     <generator>
                         <name>org.jooq.codegen.JavaGenerator</name>
                         <database>
                             <name>org.jooq.meta.postgres.PostgresDatabase</name>
-                            <includes>*</includes> <!-- lowercase table name -->
+                            <includes>.*</includes> <!-- lowercase table name -->
                             <excludes>flyway_schema_history</excludes>
                             <schemata>
                                 <schema>
@@ -109,6 +122,26 @@
             <artifactId>junit-jupiter</artifactId>
             <version>5.10.2</version>
             <scope>test</scope>
+        </dependency>
+
+        <!-- Stripe -->
+        <dependency>
+            <groupId>com.stripe</groupId>
+            <artifactId>stripe-java</artifactId>
+            <version>30.2.0</version>
+        </dependency>
+        <!-- Spark to be used in stripe class -->
+        <dependency>
+            <groupId>com.sparkjava</groupId>
+            <artifactId>spark-core</artifactId>
+            <version>2.9.4</version>
+        </dependency>
+
+        <!-- https://mvnrepository.com/artifact/com.google.code.gson/gson -->
+        <dependency>
+            <groupId>com.google.code.gson</groupId>
+            <artifactId>gson</artifactId>
+            <version>2.13.0</version>
         </dependency>
 
         <!-- Mockito Core -->

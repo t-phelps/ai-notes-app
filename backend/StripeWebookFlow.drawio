@@ -1,0 +1,82 @@
+<mxfile host="app.diagrams.net" agent="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36" version="29.1.0">
+  <diagram name="Page-1" id="mgKftjIXcE1ZSUOQq_g_">
+    <mxGraphModel dx="1236" dy="690" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="H6XQocj379JqRE00btrf-1" parent="1" style="ellipse;whiteSpace=wrap;html=1;" value="User enters create-checkout-session or anything else hosted by stripe (a redirect url)" vertex="1">
+          <mxGeometry height="130" width="230" x="310" y="40" as="geometry" />
+        </mxCell>
+        <mxCell id="H6XQocj379JqRE00btrf-2" edge="1" parent="1" source="H6XQocj379JqRE00btrf-1" style="endArrow=classic;html=1;rounded=0;exitX=0;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" target="H6XQocj379JqRE00btrf-4" value="">
+          <mxGeometry height="50" relative="1" width="50" as="geometry">
+            <mxPoint x="400" y="420" as="sourcePoint" />
+            <mxPoint x="230" y="260" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="H6XQocj379JqRE00btrf-4" parent="1" style="rounded=0;whiteSpace=wrap;html=1;" value="User pays" vertex="1">
+          <mxGeometry height="60" width="120" x="170" y="240" as="geometry" />
+        </mxCell>
+        <mxCell id="H6XQocj379JqRE00btrf-5" edge="1" parent="1" source="H6XQocj379JqRE00btrf-1" style="endArrow=classic;html=1;rounded=0;exitX=1;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" target="H6XQocj379JqRE00btrf-7" value="">
+          <mxGeometry height="50" relative="1" width="50" as="geometry">
+            <mxPoint x="574" y="120" as="sourcePoint" />
+            <mxPoint x="610" y="240" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="H6XQocj379JqRE00btrf-7" parent="1" style="rounded=0;whiteSpace=wrap;html=1;" value="User doesn&#39;t pay" vertex="1">
+          <mxGeometry height="60" width="120" x="540" y="240" as="geometry" />
+        </mxCell>
+        <mxCell id="H6XQocj379JqRE00btrf-11" parent="1" style="rounded=1;whiteSpace=wrap;html=1;" value="Stripe sends a POST request to webhook endpoint containing the event with what the user did" vertex="1">
+          <mxGeometry height="110" width="207" x="322" y="380" as="geometry" />
+        </mxCell>
+        <mxCell id="H6XQocj379JqRE00btrf-12" edge="1" parent="1" source="H6XQocj379JqRE00btrf-4" style="endArrow=classic;html=1;rounded=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.25;entryY=0;entryDx=0;entryDy=0;" target="H6XQocj379JqRE00btrf-11" value="">
+          <mxGeometry height="50" relative="1" width="50" as="geometry">
+            <mxPoint x="264" y="430" as="sourcePoint" />
+            <mxPoint x="150" y="519" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="H6XQocj379JqRE00btrf-13" edge="1" parent="1" source="H6XQocj379JqRE00btrf-7" style="endArrow=classic;html=1;rounded=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.75;entryY=0;entryDx=0;entryDy=0;" target="H6XQocj379JqRE00btrf-11" value="">
+          <mxGeometry height="50" relative="1" width="50" as="geometry">
+            <mxPoint x="694" y="340" as="sourcePoint" />
+            <mxPoint x="580" y="429" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="H6XQocj379JqRE00btrf-14" parent="1" style="rounded=1;whiteSpace=wrap;html=1;" value="Backend handles the event and updates the db and whatever else we need to do&amp;nbsp;" vertex="1">
+          <mxGeometry height="110" width="207" x="160" y="590" as="geometry" />
+        </mxCell>
+        <mxCell id="H6XQocj379JqRE00btrf-24" edge="1" parent="1" source="H6XQocj379JqRE00btrf-16" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="H6XQocj379JqRE00btrf-23" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="H6XQocj379JqRE00btrf-16" parent="1" style="rounded=0;whiteSpace=wrap;html=1;" value="User gets redirected from stripes page back to our webpage" vertex="1">
+          <mxGeometry height="90" width="180" x="470" y="600" as="geometry" />
+        </mxCell>
+        <mxCell id="H6XQocj379JqRE00btrf-20" edge="1" parent="1" style="endArrow=none;html=1;rounded=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;" target="H6XQocj379JqRE00btrf-11" value="">
+          <mxGeometry height="50" relative="1" width="50" as="geometry">
+            <mxPoint x="426" y="560" as="sourcePoint" />
+            <mxPoint x="430" y="520" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="H6XQocj379JqRE00btrf-21" edge="1" parent="1" style="endArrow=classic;html=1;rounded=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" target="H6XQocj379JqRE00btrf-16" value="">
+          <mxGeometry height="50" relative="1" width="50" as="geometry">
+            <Array as="points">
+              <mxPoint x="560" y="560" />
+            </Array>
+            <mxPoint x="430" y="560" as="sourcePoint" />
+            <mxPoint x="540" y="580" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="H6XQocj379JqRE00btrf-22" edge="1" parent="1" style="endArrow=classic;html=1;rounded=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" target="H6XQocj379JqRE00btrf-14" value="">
+          <mxGeometry height="50" relative="1" width="50" as="geometry">
+            <Array as="points">
+              <mxPoint x="264" y="560" />
+            </Array>
+            <mxPoint x="430" y="560" as="sourcePoint" />
+            <mxPoint x="400" y="550" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="H6XQocj379JqRE00btrf-23" parent="1" style="rounded=1;whiteSpace=wrap;html=1;" value="Frontend Queries backend to get subscription status to then render what it is supposed to based on that response&lt;div&gt;ex. user paid -&amp;gt; allow them to use app&lt;/div&gt;" vertex="1">
+          <mxGeometry height="110" width="207" x="456.5" y="780" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
