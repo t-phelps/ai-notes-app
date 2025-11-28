@@ -1,16 +1,17 @@
 package com.tphelps.backend.controller;
 
+import com.tphelps.backend.dtos.MyUserDetails;
+import com.tphelps.backend.dtos.responses.UserDetailsResponseDto;
 import com.tphelps.backend.service.CustomUserDetailsService;
+import static com.tphelps.backend.controller.authentication.AuthenticationValidator.validateUserAuthentication;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/account")
@@ -55,7 +56,7 @@ public class AccountController {
      * @param password - password to match
      * @return - <code>200 on success</code>, <code>401 if not authenticated</code>, <code>400 if bad request</code>
      */
-    @PostMapping("delete")
+    @PostMapping("/delete")
     public ResponseEntity<?> delete(@RequestParam("password") String password) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 
@@ -73,5 +74,22 @@ public class AccountController {
         }
 
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+    }
+
+    /**
+     * Get the authenticated users details excluding password and stripe customer id
+     * @return status 200 with pertinent user details if authenticated
+     */
+    @GetMapping("/user-details")
+    public ResponseEntity<?> getUserDetails() {
+
+        Authentication authentication = validateUserAuthentication();
+        if(authentication != null){
+            MyUserDetails userDetails = customUserDetailsService.loadUserByUsername(authentication.getName());
+
+            return ResponseEntity.ok(new UserDetailsResponseDto(userDetails.getEmail(),  userDetails.getUsername()));
+        }else{
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
     }
 }

@@ -1,0 +1,59 @@
+.signup-container {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    width: 100vw;
+    background-image: url("../images/pexels-peng-liu-45946-169677.jpg");
+    background-size: cover;
+    background-repeat: no-repeat;
+    background-position: center;
+}
+
+.signup-box {
+    width: 400px;
+    height: 500px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    border: 1px solid white;
+    background-color: rgba(255, 255, 255, 0.7);
+    border-radius: 20px;
+}
+
+.signup-input {
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 20px;
+    border: none;
+    width: 100%;
+}
+
+.signup-label {
+    align-self: flex-start;
+    display: block;
+    text-align: left;
+    margin-left: 5px;
+}
+
+.signup-button{
+    align-self: flex-start;
+    display: block;
+    text-align: center;
+}
+.error {
+    color: red;
+    font-style: italic;
+}
+button {
+    border-radius: 8px;
+    padding: 10px;
+    border: none;
+}
+
+button:hover {
+    background-color: rgba(255, 255, 255, 0.7);
+    cursor: pointer;
+}

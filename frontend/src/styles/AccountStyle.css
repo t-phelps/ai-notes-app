@@ -1,0 +1,98 @@
+.account-container {
+    display: flex;
+    flex-direction: row;       /* left + right side-by-side */
+    justify-content: center;   /* center whole container horizontally */
+    align-items: center;       /* center vertically */
+    height: 100vh;
+    width: 100%;
+
+    background-image: url("../images/pexels-pixabay-219692.jpg");
+    background-size: cover;
+    background-repeat: no-repeat;
+    background-position: center;
+}
+
+.account-section {
+    display: flex;
+    flex-direction: column;
+    width: 50%;
+    height: 85%;
+    background-color: rgba(255, 255, 255, 0.7);
+    border-radius: 10px;
+    padding: 20px;
+}
+
+.account-history {
+    width: 25%;
+    height: 85%;
+    background-color: rgba(255, 255, 255, 0.7);
+    border-radius: 10px;
+    padding: 20px;
+    margin-left: 20px;
+}
+
+.account-info {
+    margin-bottom: 20px;
+    font: 700 18px/1 "Roboto", sans-serif;
+}
+
+.account-change-password {
+    display: flex;
+    flex-direction: column;
+    margin-top: 10px;
+}
+
+.account-change-password h2 {
+    margin-bottom: 10px;
+}
+
+.account-container input {
+    width: 50%;
+    border-radius: 10px;
+    border: none;
+    padding: 10px;
+}
+
+.account-change-password label {
+    margin: 5px 0;
+}
+
+.change-pwd-btn {
+    margin-top: 10px;
+    width: 30%;
+}
+
+.account-delete {
+    display: flex;
+    flex-direction: column;
+    margin-top: 40px;
+}
+
+.account-delete h2 {
+    margin: 20px 0 5px 0;
+}
+
+.account-delete p {
+    color: red;
+    font-style: italic;
+    font-weight: bold;
+    margin-left: -1px;
+}
+
+.account-delete-form {
+    display: flex;
+    flex-direction: column;
+}
+
+.account-delete-form label {
+    margin: 5px 0;
+}
+
+.account-delete button {
+    margin-top: 10px;
+    width: 30%;
+}
+
+.account-delete-btn:hover {
+    background-color: red;
+}

@@ -1,5 +1,6 @@
 package com.tphelps.backend.repository;
 
+import com.tphelps.backend.dtos.MyUserDetails;
 import org.jooq.DSLContext;
 import org.springframework.stereotype.Repository;
 
@@ -15,10 +16,10 @@ public class AuthenticationRepository {
         this.dsl = dsl;
     }
 
-    public Users getUser(String username) {
+    public MyUserDetails getUser(String username) {
         return dsl.selectFrom(USERS)
                 .where(USERS.USERNAME.eq(username))
-                .fetchOneInto(Users.class);
+                .fetchOneInto(MyUserDetails.class);
     }
 
     public void createUser(Users user){
