@@ -64,8 +64,9 @@ public class SecurityConfig {
                 .authorizeHttpRequests(requests -> {
                     requests
                             .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                            .requestMatchers("/auth/login", "/auth/create", "/stripe/create-checkout-session").permitAll()
-                            .requestMatchers("/OTHER______ENDPOINTS").authenticated()
+                            .requestMatchers("/auth/login", "/auth/create", "/stripe/webhook").permitAll()
+                            .requestMatchers("/stripe/create-checkout-session", "/stripe/create-portal-session",
+                                    "/account/delete", "/account/change-password", "/account/user-details").authenticated()
                             .anyRequest().authenticated();
                 })
                 // disable default login forms

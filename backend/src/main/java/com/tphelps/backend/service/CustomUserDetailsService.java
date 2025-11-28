@@ -1,5 +1,6 @@
 package com.tphelps.backend.service;
 
+import com.tphelps.backend.dtos.MyUserDetails;
 import com.tphelps.backend.repository.AccountRepository;
 import com.tphelps.backend.jwt.JwtTokenGenerator;
 import com.tphelps.backend.repository.AuthenticationRepository;
@@ -49,14 +50,18 @@ public class CustomUserDetailsService implements UserDetailsService {
      * @throws UsernameNotFoundException - on user not found in database
      */
     @Override
-    public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        Users customer = authenticationRepository.getUser(username);
-        if(customer == null) {
+    public MyUserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
+        MyUserDetails customer = authenticationRepository.getUser(username);
+        if (customer == null) {
             throw new UsernameNotFoundException(username);
         }
-        List<GrantedAuthority> authorities = List.of(new SimpleGrantedAuthority(customer.getRole()));
 
-        return new User(customer.getUsername(), customer.getPassword(), authorities);
+        // safely handle null stripeId
+        if (customer.getStripeId() == null) {
+            customer.setStripeId("");
+        }
+
+        return customer;
     }
 
 
@@ -117,7 +122,9 @@ public class CustomUserDetailsService implements UserDetailsService {
 
         try {
             // save the user to the database
-            authenticationRepository.createUser(new Users(null, email, username, hashedPassword, role, LocalDateTime.now()));
+            authenticationRepository.createUser(new Users(
+                    null, email, username, hashedPassword, role, LocalDateTime.now(), null));
+
         }catch(Exception e) {
             e.printStackTrace();
             return null;
