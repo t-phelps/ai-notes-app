@@ -47,7 +47,7 @@ export const LoginComponent = () => {
             }
 
             console.log("User logged in successfully");
-            navigate("/account");
+            navigate("/landing");
         }catch(err) {
             console.log("Error occurred while logging in: ", err);
         }

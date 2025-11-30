@@ -10,8 +10,13 @@ import {ResetPassword} from "./components/ResetPassword.jsx";
 import {Signup} from "./components/Signup.jsx";
 import {AccountPage} from "./components/AccountPage.jsx";
 import {Landing} from "./components/Landing.jsx";
+import {useEffect, useState} from "react";
 
 function App() {
+
+    const [username, setUsername] = useState("");
+    const [email, setEmail] = useState("");
+    const [userNotesArray, setUserNotesArray] = useState([]);
 
    const handleCreateSession = async () => {
        try {
@@ -47,10 +52,11 @@ function App() {
       <BrowserRouter>
           <Routes>
               <Route path="/" element={<LoginComponent />} />
-              <Route path="/reset-password" element={<ResetPassword/>} />
-              <Route path={"/create-account"} element={<Signup/>} />
-              <Route path={"/account"} element={<AccountPage/>} />
-              <Route path={"/landing"} element={<Landing/>} />
+              <Route path="/reset-password" element={<ResetPassword />} />
+              <Route path={"/create-account"} element={<Signup />} />
+              <Route path={"/account"} element={<AccountPage username={username} email={email} userNotesArray={userNotesArray} />} />
+              <Route path={"/landing"} element={<Landing setUsername={setUsername}
+               setEmail={setEmail} setUserNotesArray={setUserNotesArray} />} />
           </Routes>
       </BrowserRouter>
   );

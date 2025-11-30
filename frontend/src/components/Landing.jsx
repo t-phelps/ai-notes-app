@@ -1,15 +1,53 @@
 import {NavBar} from "./NavBar.jsx";
 import "../styles/LandingStyle.css";
-import {useState} from "react";
+import {useEffect, useState} from "react";
 
-export const Landing = () => {
+export const Landing = ({setUsername, setEmail, setUserNotesArray}) => {
 
     const [title, setTitle] = useState("");
     const [text, setText] = useState("");
 
+
+    useEffect(() => {
+        async function fetchUserData() {
+            try {
+                const response = await fetch("http://localhost:8080/account/user-details", {
+                    method: "GET",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    credentials: "include",
+                });
+
+                if (!response.ok) {
+                    throw new Error("Failed to fetch user data");
+                }
+
+                const data = await response.json();
+                if(!data?.username.trim() && !data?.email.trim()){
+                    throw new Error("Error within user fields, an empty fields exists");
+                }
+
+                setUsername(data.username);
+                setEmail(data.email);
+                setUserNotesArray(data?.userNotesDto || []);
+                console.log(data);
+                console.log("Success setting user fields");
+            }catch(err) {
+                console.error(err);
+            }
+        }
+        fetchUserData();
+    }, [setUsername, setEmail, setUserNotesArray]);
+
+
     const saveNoteToCloud = async (e) => {
         e.preventDefault();
+
         try {
+            if(!text && !title){
+                throw new Error("Please enter a title or notes");
+            }
             const response = await fetch("http://localhost:8080/notes/to-cloud", {
                 method: "POST",
                 credentials: "include",
@@ -37,7 +75,7 @@ export const Landing = () => {
     const generateStudyGuide = async (e) => {
         e.preventDefault();
         try {
-            const response = await fetch("http://localhost:8080/study/generate-study-guide", {
+            const response = await fetch("http://localhost:8080/notes/generate-study-guide", {
                 method: "POST",
                 credentials: "include",
                 headers: {

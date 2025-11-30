@@ -1,6 +1,7 @@
 package com.tphelps.backend.service;
 
 import com.tphelps.backend.dtos.MyUserDetails;
+import com.tphelps.backend.dtos.responses.UserDetailsResponseDto;
 import com.tphelps.backend.repository.AccountRepository;
 import com.tphelps.backend.jwt.JwtTokenGenerator;
 import com.tphelps.backend.repository.AuthenticationRepository;
@@ -131,6 +132,15 @@ public class CustomUserDetailsService implements UserDetailsService {
         }
 
         return generateUserCookie(username);
+    }
+
+    /**
+     * UserDetails service allowance method for fetching user info
+     * @param username - the user to fetch info for
+     * @return - a populated {@link UserDetailsResponseDto} object
+     */
+    public UserDetailsResponseDto getUserHistory(String username) {
+       return accountRepository.getUserInfo(username);
     }
 
     /**
