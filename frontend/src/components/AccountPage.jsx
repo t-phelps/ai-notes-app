@@ -7,10 +7,8 @@ import {NavBar} from "./NavBar.jsx";
 
 
 
-export const AccountPage = () => {
-    const [email, setEmail] = useState("");
-    const [username, setUsername] = useState("");
-
+export const AccountPage = ({username, email, userNotesArray}) => {
+    console.log("Username: ", username, " Email: ",  email, " User Notes Array: ",userNotesArray);
     const navigate = useNavigate();
 
     const [oldPassword, setOldPassword] = useState("");
@@ -31,36 +29,6 @@ export const AccountPage = () => {
             .oneOf([yup.ref("password"), null], "Passwords must match")
             .required(),
     })
-
-    useEffect(() => {
-        async function fetchUserData() {
-            try {
-                const response = await fetch("http://localhost:8080/account/user-details", {
-                    method: "GET",
-                    headers: {
-                        "Content-Type": "application/json",
-                    },
-                    credentials: "include",
-                });
-
-                if (!response.ok) {
-                    throw new Error("Failed to fetch user data");
-                }
-
-                const data = await response.json();
-                if(!data.username.trim() && !data.email.trim()){
-                    throw new Error("Error within user fields, an empty fields exists");
-                }
-
-                setUsername(data.username);
-                setEmail(data.email);
-                console.log("Success setting user fields");
-            }catch(err) {
-                console.error(err);
-            }
-        }
-        fetchUserData();
-    }, []);
 
 
     const handlePasswordChange = async (e) => {
@@ -176,9 +144,18 @@ export const AccountPage = () => {
 
               </div>
 
-              <div className={"account-history"}>
-                <h2>Notes History</h2>
-
+              <div className="account-history">
+                  <h2>Notes History</h2>
+                  {userNotesArray.length === 0 ? (
+                      <p>No notes yet.</p>
+                  ) : (
+                      userNotesArray.map((note) => (
+                          <div key={note.pathToNote} className="note-card">
+                              <strong>{note.pathToNote}</strong>
+                              <span>Saved at: {note.savedAt.slice(0, 5)}</span>
+                          </div>
+                      ))
+                  )}
               </div>
 
           </div>

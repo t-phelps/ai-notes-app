@@ -85,9 +85,10 @@ public class AccountController {
 
         Authentication authentication = validateUserAuthentication();
         if(authentication != null){
-            MyUserDetails userDetails = customUserDetailsService.loadUserByUsername(authentication.getName());
+            UserDetails userDetails = (UserDetails) authentication.getPrincipal();
+            UserDetailsResponseDto userDetailsResponseDto = customUserDetailsService.getUserHistory(userDetails.getUsername());
 
-            return ResponseEntity.ok(new UserDetailsResponseDto(userDetails.getEmail(),  userDetails.getUsername()));
+            return ResponseEntity.ok(userDetailsResponseDto);
         }else{
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
