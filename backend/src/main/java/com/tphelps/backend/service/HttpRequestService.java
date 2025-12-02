@@ -17,7 +17,6 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Base64;
 
 public class HttpRequestService {
 
@@ -26,6 +25,9 @@ public class HttpRequestService {
 
     @Value("rclone.password")
     private static String PASSWORD;
+
+    @Value("open.ai.key")
+    private static String OPEN_AI_KEY;
 
     /**
      * Service method for sending an rclone http request to local remote running on machine.
@@ -73,6 +75,15 @@ public class HttpRequestService {
         }catch(IOException | URISyntaxException e){
             throw new IllegalStateException(e);
         }
+
+    }
+
+    /**
+     *
+     * @param title
+     * @param notes
+     */
+    public static void openAiRequest(String title, String notes){
 
     }
 

@@ -1,5 +1,5 @@
 import "../styles/NavBarStyle.css";
-import {House, User} from "lucide-react";
+import {House, User, DollarSign} from "lucide-react";
 
 export const NavBar = () => {
 
@@ -8,6 +8,11 @@ export const NavBar = () => {
         <nav className="nav">
             <h2>Notes-AI</h2>
             <ul>
+                <li>
+                    <a href={"/payment"}>
+                        <DollarSign />
+                    </a>
+                </li>
                 <li>
                     <a href="/landing">
                         <House />

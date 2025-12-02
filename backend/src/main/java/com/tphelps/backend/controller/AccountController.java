@@ -1,6 +1,7 @@
 package com.tphelps.backend.controller;
 
 import com.tphelps.backend.dtos.MyUserDetails;
+import com.tphelps.backend.dtos.responses.PurchaseHistoryResponseDto;
 import com.tphelps.backend.dtos.responses.UserDetailsResponseDto;
 import com.tphelps.backend.service.CustomUserDetailsService;
 import static com.tphelps.backend.controller.authentication.AuthenticationValidator.validateUserAuthentication;
@@ -12,6 +13,8 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/account")
@@ -89,8 +92,29 @@ public class AccountController {
             UserDetailsResponseDto userDetailsResponseDto = customUserDetailsService.getUserHistory(userDetails.getUsername());
 
             return ResponseEntity.ok(userDetailsResponseDto);
-        }else{
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
+
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+    }
+
+    /**
+     * Endpoint to get the users purchase history
+     * @return - a {@link PurchaseHistoryResponseDto} containing the period for subscription and the status
+     */
+    @GetMapping("/purchase-history")
+    public ResponseEntity<?> getPurchaseHistory() {
+        Authentication authentication = validateUserAuthentication();
+        if(authentication != null){
+            UserDetails userDetails = (UserDetails) authentication.getPrincipal();
+            List<PurchaseHistoryResponseDto> responseDto = customUserDetailsService.getUserPurchaseHistory(userDetails.getUsername());
+
+            if(responseDto != null){
+                return ResponseEntity.ok(responseDto);
+            }
+
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
     }
 }

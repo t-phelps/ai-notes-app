@@ -39,7 +39,7 @@ public class NotesController {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
 
-        if(notes.title().isEmpty() || notes.notes().isEmpty()) {
+        if(validateNotes(notes)) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
         }
 
@@ -49,5 +49,39 @@ public class NotesController {
         }catch(IllegalStateException | EmptyResultDataAccessException e){
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
+    }
+
+    /**
+     * Utilize openai-api to generate a study guide from the notes passed in from the user within the notes request
+     * @param notes - populated {@link SaveNotesRequest} from the user
+     * @return response containing study guide on success
+     */
+    @PostMapping("/generate-study-guide")
+    public ResponseEntity<?> generateStudyGuide(SaveNotesRequest notes) {
+        Authentication authentication = validateUserAuthentication();
+        if(authentication == null) {
+            return  ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+
+        if(validateNotes(notes)) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
+        }
+        try{
+            // TODO finish implementation
+
+            return ResponseEntity.ok().build();
+        }catch(Exception e){
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+
+    }
+
+    /**
+     * Bad name, validate notes fields within dto
+     * @param notes - the {@link SaveNotesRequest}
+     * @return true if not valid, false if valid
+     */
+    private boolean validateNotes(SaveNotesRequest notes) {
+        return notes.title().isEmpty() && notes.notes().isEmpty();
     }
 }
