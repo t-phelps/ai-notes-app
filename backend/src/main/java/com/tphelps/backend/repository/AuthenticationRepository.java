@@ -28,6 +28,7 @@ public class AuthenticationRepository {
                 .set(USERS.EMAIL, user.getEmail())
                 .set(USERS.PASSWORD, user.getPassword())
                 .set(USERS.ROLE, user.getRole())
+                .set(USERS.STRIPE_CUSTOMER_ID, user.getStripeCustomerId())
                 .execute();
     }
 }

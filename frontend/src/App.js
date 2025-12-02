@@ -10,7 +10,8 @@ import {ResetPassword} from "./components/ResetPassword.jsx";
 import {Signup} from "./components/Signup.jsx";
 import {AccountPage} from "./components/AccountPage.jsx";
 import {Landing} from "./components/Landing.jsx";
-import {useEffect, useState} from "react";
+import { useState} from "react";
+import {Payment} from "./components/Payment.jsx";
 
 function App() {
 
@@ -18,30 +19,6 @@ function App() {
     const [email, setEmail] = useState("");
     const [userNotesArray, setUserNotesArray] = useState([]);
 
-   const handleCreateSession = async () => {
-       try {
-           const response = await fetch("http://localhost:8080/stripe/create-checkout-session?lookup_key=test_key_1", {
-               method: "POST",
-               body: JSON.stringify({
-                   lookup_key: "test_key_1",
-               }),
-               headers: {
-                   "Content-Type": "application/json",
-               },
-           });
-
-           const data = await response.json();
-           if (data.url) {
-               // redirect to url given by stripe
-               window.location.href = data.url;
-           } else if (data.error) {
-               console.log("Stripe error", data.error);
-               throw new Error("Error creating Stripe session");
-           }
-       }catch(err){
-           console.error(err);
-       }
-    }
   return (
     // <div className="App">
     //     {/*<button onClick={handleCreateSession}>*/}
@@ -57,6 +34,7 @@ function App() {
               <Route path={"/account"} element={<AccountPage username={username} email={email} userNotesArray={userNotesArray} />} />
               <Route path={"/landing"} element={<Landing setUsername={setUsername}
                setEmail={setEmail} setUserNotesArray={setUserNotesArray} />} />
+              <Route path={"/payment"} element={<Payment />} />
           </Routes>
       </BrowserRouter>
   );

@@ -1,6 +1,9 @@
 package com.tphelps.backend.service;
 
+import com.stripe.model.Customer;
+import com.stripe.param.CustomerCreateParams;
 import com.tphelps.backend.dtos.MyUserDetails;
+import com.tphelps.backend.dtos.responses.PurchaseHistoryResponseDto;
 import com.tphelps.backend.dtos.responses.UserDetailsResponseDto;
 import com.tphelps.backend.repository.AccountRepository;
 import com.tphelps.backend.jwt.JwtTokenGenerator;
@@ -115,16 +118,23 @@ public class CustomUserDetailsService implements UserDetailsService {
     public ResponseCookie createUser(CreateAccountRequest request) {
         String username = request.username();
         String email  = request.email();
-        String password = request.password(); // is this unsafe to do this here? notice in Authentication object, Credentials: [Protected]
+        String password = request.password();
         String role = "USER";
 
         // hash the password using jBCrypt
         String hashedPassword = passwordEncoder.encode(password);
 
         try {
+            // create the stripe customer to store a customer id in the db to be used in the events later
+            // this is to create the link between the users table and the subscriptions table
+            Customer customer = Customer.create(
+                    CustomerCreateParams.builder()
+                            .setEmail(email)
+                            .build());
+
             // save the user to the database
             authenticationRepository.createUser(new Users(
-                    null, email, username, hashedPassword, role, LocalDateTime.now(), null));
+                    null, email, username, hashedPassword, role, LocalDateTime.now(), customer.getId()));
 
         }catch(Exception e) {
             e.printStackTrace();
@@ -141,6 +151,12 @@ public class CustomUserDetailsService implements UserDetailsService {
      */
     public UserDetailsResponseDto getUserHistory(String username) {
        return accountRepository.getUserInfo(username);
+    }
+
+
+
+    public List<PurchaseHistoryResponseDto> getUserPurchaseHistory(String username) {
+        return accountRepository.getPurchaseHistory(username);
     }
 
     /**

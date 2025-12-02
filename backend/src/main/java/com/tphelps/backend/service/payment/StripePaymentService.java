@@ -7,7 +7,9 @@ import com.stripe.model.*;
 import com.stripe.model.checkout.Session;
 import com.stripe.param.PriceListParams;
 import com.stripe.param.checkout.SessionCreateParams;
-import com.tphelps.backend.dtos.payment.SubscriptionInfoDto;
+import com.tphelps.backend.dtos.payment.SubscriptionCreationDto;
+import com.tphelps.backend.dtos.payment.SubscriptionUpdateDto;
+import com.tphelps.backend.repository.AccountRepository;
 import com.tphelps.backend.repository.payment.StripePaymentRepository;
 import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.ListableBeanFactory;
@@ -26,25 +28,25 @@ public class StripePaymentService {
 
     private static Gson gson = new Gson();
 
+    // value does NOT inject into static fields
     @Value("${stripe.api.key}")
-    private static String STRIPE_API_KEY;
-
-    @Value("${stripe.endpoint.secret}")
-    public static String ENDPOINT_SECRET;
+    private String STRIPE_API_KEY;
 
     @Value("${front.end.url}")
-    private static String MY_DOMAIN;
+    private String MY_DOMAIN;
 
     @PostConstruct
     public void init() {
         Stripe.apiKey = STRIPE_API_KEY;
     }
 
-    StripePaymentRepository stripePaymentRepository;
+    private final StripePaymentRepository stripePaymentRepository;
+    private final AccountRepository accountRepository;
 
     @Autowired
-    public StripePaymentService(StripePaymentRepository stripePaymentRepository, StringHttpMessageConverter stringHttpMessageConverter, ListableBeanFactory listableBeanFactory) {
+    public StripePaymentService(StripePaymentRepository stripePaymentRepository, StringHttpMessageConverter stringHttpMessageConverter, ListableBeanFactory listableBeanFactory, AccountRepository accountRepository) {
         this.stripePaymentRepository = stripePaymentRepository;
+        this.accountRepository = accountRepository;
     }
 
     /**
@@ -53,19 +55,22 @@ public class StripePaymentService {
      * @return a map containing the redirect url
      * @throws StripeException - if any stripe api error occurs
      */
-    public Map<String, String> getCreateCheckoutSessionRedirectUrl(String key) throws StripeException {
+    public Map<String, String> getCreateCheckoutSessionRedirectUrl(String key, String username) throws StripeException {
         PriceListParams priceListParams = PriceListParams.builder().addLookupKey(key).build();
         PriceCollection prices = Price.list(priceListParams);// requires a product within stripe dashboard to have a lookup_key assigned to the product
         if(prices.getData().isEmpty()) {
             throw new IllegalStateException("No price list found");
         }
 
+        java.lang.String  stripeCustomerId= stripePaymentRepository.getUserStripeCustomerId(username);
+
         // create checkout session, controls what customer sees on stripe-hosted payment page
         SessionCreateParams sessionCreateParams = SessionCreateParams.builder()
                 .addLineItem(
                         SessionCreateParams.LineItem.builder().setPrice(prices.getData().get(0).getId()).setQuantity(1L).build())
                 .setMode(SessionCreateParams.Mode.SUBSCRIPTION)
-                .setSuccessUrl(MY_DOMAIN + "/success.html?session_id={CHECKOUT_SESSION_ID}")
+                .setCustomer(stripeCustomerId) // pass in the customer id generated when user created account
+                .setSuccessUrl(MY_DOMAIN + "/landing")
                 .build();
         Session session = Session.create(sessionCreateParams);
         return Map.of("url", session.getUrl());
@@ -81,34 +86,32 @@ public class StripePaymentService {
         UserDetails userDetails = (UserDetails) authentication.getPrincipal();
         String username = userDetails.getUsername();
 
-        Users user = stripePaymentRepository.getUserStripeCustomerId(username);
+        java.lang.String  stripeCustomerId= stripePaymentRepository.getUserStripeCustomerId(username);
 
         com.stripe.param.billingportal.SessionCreateParams params = new com.stripe.param.billingportal.SessionCreateParams.Builder()
-                .setCustomer(user.getUsername())
+                .setCustomer(stripeCustomerId) // stripe customer id from the db to not create a new customer ID on checkout
                 .setReturnUrl(MY_DOMAIN).build();
 
         com.stripe.model.billingportal.Session portalSession = com.stripe.model.billingportal.Session.create(params);
         return Map.of("url", portalSession.getUrl());
     }
 
-
-    public void handleTrialSubscriptionEnding(Subscription subscription) {
-        // TODO could use this to send a reminder email to user saying their subscription will be over soon and when
-        // as well as price details etc
-    }
-
-    public void handleSubscriptionDeleted(Subscription Subscription){
-
+    /**
+     * Handle the subscription deleted event (cancelled) and update the subscription status for customer id within the db
+     * @param subscription - a subscription object from Stripe
+     */
+    public void handleSubscriptionDeleted(Subscription subscription){
+        updateUserSubscription(subscription);
     }
 
     /**
      * Handles a subscription created event from the webhook for stripe events
-     * Adds {@link SubscriptionInfoDto} into the db
-     * @param subscription - a subscription object
+     * Adds {@link SubscriptionCreationDto} into the db
+     * @param subscription - a subscription object from Stripe
      */
     public void handleSubscriptionCreated(Subscription subscription){
         SubscriptionItem dataList = subscription.getItems().getData().get(0);
-        SubscriptionInfoDto subscriptionInfoDto = new SubscriptionInfoDto(
+        SubscriptionCreationDto subscriptionCreationDto = new SubscriptionCreationDto(
                 subscription.getCustomer(),
                 subscription.getId(),
                 subscription.getStatus(),
@@ -118,14 +121,38 @@ public class StripePaymentService {
                 dataList.getCurrentPeriodEnd(),
                 dataList.getPrice().getId());
 
-        stripePaymentRepository.insertUserSubscription(subscriptionInfoDto);
+        stripePaymentRepository.insertUserSubscription(subscriptionCreationDto);
     }
 
-    public void handleSubscriptionUpdated(Subscription Subscription){
+
+    /**
+     * Handle a subscription updated event from Stripe
+     * @param subscription - subscription object from stripe
+     */
+    public void handleSubscriptionUpdated(Subscription subscription){
         // update the database table SUBSCRIPTIONS with the updated info
+        updateUserSubscription(subscription);
     }
 
-    public void handleEntitlementUpdated(Subscription Subscription){
+    /**
+     * Extracted method for updating a user subscription in the db
+     * @param subscription - the subscription object from stripe
+     */
+    private void updateUserSubscription(Subscription subscription){
+        SubscriptionUpdateDto subscriptionUpdateDto = createSubscriptionUpdateDto(subscription);
 
+        stripePaymentRepository.updateUserSubscription(subscriptionUpdateDto);
+    }
+
+    /**
+     * Extracted method for creating a {@link SubscriptionUpdateDto}
+     * @param subscription - the subscription object from stripe
+     * @return a populated subscription update dto
+     */
+    private SubscriptionUpdateDto createSubscriptionUpdateDto(Subscription subscription){
+        return new SubscriptionUpdateDto(
+                subscription.getCustomer(),
+                subscription.getId(),
+                subscription.getStatus());
     }
 }

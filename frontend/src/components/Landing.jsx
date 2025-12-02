@@ -74,6 +74,7 @@ export const Landing = ({setUsername, setEmail, setUserNotesArray}) => {
 
     const generateStudyGuide = async (e) => {
         e.preventDefault();
+
         try {
             const response = await fetch("http://localhost:8080/notes/generate-study-guide", {
                 method: "POST",
