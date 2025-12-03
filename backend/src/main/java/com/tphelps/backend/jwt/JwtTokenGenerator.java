@@ -1,10 +1,12 @@
 package com.tphelps.backend.jwt;
 
 import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.ResponseCookie;
 import org.springframework.security.authentication.AuthenticationCredentialsNotFoundException;
 import org.springframework.stereotype.Component;
 
@@ -39,7 +41,7 @@ public class JwtTokenGenerator {
         return Jwts.builder()
                 .setSubject(username)
                 .setIssuedAt(new Date())
-                .setExpiration(new Date(System.currentTimeMillis() + 3600_000)) // 1 hour
+                .setExpiration(new Date(System.currentTimeMillis() + 300_000)) // 5 minutes
                 .signWith(getSigningKey())
                 .compact();
     }
@@ -67,8 +69,9 @@ public class JwtTokenGenerator {
         try{
             Jwts.parserBuilder().setSigningKey(getSigningKey()).build().parseClaimsJws(token);
             return true;
-        }catch (Exception e){
+        }catch (JwtException e){
             return false;
         }
     }
+
 }

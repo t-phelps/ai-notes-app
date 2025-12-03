@@ -193,6 +193,7 @@ public class StripePaymentController {
             }
         }catch(EmptyResultDataAccessException | IllegalArgumentException e){
             // do something
+            return ResponseEntity.internalServerError().build();
         }
 
         return ResponseEntity.ok().build();

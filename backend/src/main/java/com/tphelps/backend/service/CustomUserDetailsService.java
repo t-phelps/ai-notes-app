@@ -193,4 +193,20 @@ public class CustomUserDetailsService implements UserDetailsService {
                 .maxAge(3600)
                 .build();
     }
+
+    /**
+     * Send an expired token to the front end on logout
+     * @return - a ResponseCookie that's expired
+     */
+    public ResponseCookie invalidateUserCookie() {
+       return ResponseCookie.from("jwt", "")
+                .maxAge(0)
+                .httpOnly(true)
+                .path("/")
+                .build();
+    }
+
+    public void blacklistCurrentUserCookie(Object principal) {
+
+    }
 }

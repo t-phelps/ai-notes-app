@@ -26,7 +26,6 @@ public class NotesController {
         this.notesService = notesService;
     }
 
-
     /**
      * Save notes to google drive and save path to database
      * @param notes - the dto containing the notes and the title
