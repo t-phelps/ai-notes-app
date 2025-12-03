@@ -19,7 +19,6 @@ import org.springframework.http.converter.StringHttpMessageConverter;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
-import test.generated.tables.pojos.Users;
 
 import java.util.Map;
 
@@ -90,7 +89,7 @@ public class StripePaymentService {
 
         com.stripe.param.billingportal.SessionCreateParams params = new com.stripe.param.billingportal.SessionCreateParams.Builder()
                 .setCustomer(stripeCustomerId) // stripe customer id from the db to not create a new customer ID on checkout
-                .setReturnUrl(MY_DOMAIN).build();
+                .setReturnUrl(MY_DOMAIN + "/landing").build();
 
         com.stripe.model.billingportal.Session portalSession = com.stripe.model.billingportal.Session.create(params);
         return Map.of("url", portalSession.getUrl());

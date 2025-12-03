@@ -1,13 +1,16 @@
 package com.tphelps.backend.controller;
 
-import com.tphelps.backend.dtos.MyUserDetails;
+import com.tphelps.backend.dtos.ChangePasswordRequest;
+import com.tphelps.backend.dtos.DeleteAccountRequest;
 import com.tphelps.backend.dtos.responses.PurchaseHistoryResponseDto;
 import com.tphelps.backend.dtos.responses.UserDetailsResponseDto;
 import com.tphelps.backend.service.CustomUserDetailsService;
 import static com.tphelps.backend.controller.authentication.AuthenticationValidator.validateUserAuthentication;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -29,22 +32,27 @@ public class AccountController {
 
     /**
      * Allow a user to change their password while logged in
-     * @param newPassword - the updated password
+     * @param changePasswordRequest - the change password request dto containing old and new password
      * @return - ok on success, else unauthorized
      */
     @PostMapping("/change-password")
-    public ResponseEntity<?> changePassword(@RequestParam("newPassword") String newPassword,
-                                            @RequestParam("oldPassword") String oldPassword) {
+    public ResponseEntity<?> changePassword(@RequestBody ChangePasswordRequest changePasswordRequest) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 
         if(authentication != null && authentication.isAuthenticated()){
             try {
+
+                // this has the browser delete the cookie when sent back
+                // this does NOT invalidate the cookie that is being deleted by the browser
+                // it can still be used, would need to implement a blacklist in db
+                ResponseCookie cookie = customUserDetailsService.invalidateUserCookie();
+
                 customUserDetailsService.changePassword(
                         (UserDetails) authentication.getPrincipal(),
-                        oldPassword,
-                        newPassword);
+                        changePasswordRequest.oldPassword(),
+                        changePasswordRequest.newPassword());
 
-                return ResponseEntity.ok("Password Changed Successfully");
+                return ResponseEntity.ok().header(HttpHeaders.SET_COOKIE, cookie.toString()).build();
 
             }catch(IllegalArgumentException e){
                 return ResponseEntity.badRequest().build();
@@ -56,22 +64,33 @@ public class AccountController {
 
     /**
      * Delete an account using the users password entered on the front end
-     * @param password - password to match
+     * @param deleteAccountRequest - delete account request dto containing the password
      * @return - <code>200 on success</code>, <code>401 if not authenticated</code>, <code>400 if bad request</code>
      */
     @PostMapping("/delete")
-    public ResponseEntity<?> delete(@RequestParam("password") String password) {
+    public ResponseEntity<?> delete(@RequestBody DeleteAccountRequest deleteAccountRequest) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 
         if(authentication != null && authentication.isAuthenticated()){
             try{
+
+                String password = deleteAccountRequest.password();
+
+                // this has the browser delete the cookie when sent back
+                // this does NOT invalidate the cookie that is being deleted by the browser
+                // it can still be used, would need to implement a blacklist in db
+                ResponseCookie cookie = customUserDetailsService.invalidateUserCookie();
+
                 customUserDetailsService.deleteAccount(
                         (UserDetails) authentication.getPrincipal(),
                         password
                 );
 
-                return ResponseEntity.ok().build();
+                return ResponseEntity.ok()
+                        .header(HttpHeaders.SET_COOKIE, cookie.toString())
+                        .body("Account deleted successfully");
             }catch(IllegalArgumentException e){
+
                 return ResponseEntity.badRequest().build();
             }
         }
