@@ -67,7 +67,7 @@ public class NotesController {
         }
         try{
             // TODO finish implementation
-
+            notesService.generateStudyGuide(notes.notes());
             return ResponseEntity.ok().build();
         }catch(Exception e){
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();

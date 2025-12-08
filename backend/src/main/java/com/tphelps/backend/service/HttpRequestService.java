@@ -26,9 +26,6 @@ public class HttpRequestService {
     @Value("rclone.password")
     private static String PASSWORD;
 
-    @Value("open.ai.key")
-    private static String OPEN_AI_KEY;
-
     /**
      * Service method for sending an rclone http request to local remote running on machine.
      * Executes a
@@ -80,10 +77,9 @@ public class HttpRequestService {
 
     /**
      *
-     * @param title
      * @param notes
      */
-    public static void openAiRequest(String title, String notes){
+    public static void openAiRequest(String notes){
 
     }
 
