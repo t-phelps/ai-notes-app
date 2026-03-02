@@ -12,6 +12,9 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+import java.util.Optional;
+
 @RestController
 @RequestMapping("/auth")
 public class AuthenticationController {
@@ -42,10 +45,18 @@ public class AuthenticationController {
             Authentication  authentication = authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(loginRequest.username(), loginRequest.password()));
 
-            ResponseCookie cookie = customUserDetailsService.generateUserCookie(authentication.getPrincipal());
-            return  ResponseEntity.ok().header(HttpHeaders.SET_COOKIE, cookie.toString()).body("User login successful");
+            ResponseCookie accessToken = customUserDetailsService.generateUserCookie(authentication.getPrincipal());
+            ResponseCookie refreshToken = customUserDetailsService.generateRefreshToken(authentication.getPrincipal());
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.add(HttpHeaders.SET_COOKIE, accessToken.toString());
+            headers.add(HttpHeaders.SET_COOKIE, refreshToken.toString());
+
+            return ResponseEntity.ok()
+                    .headers(headers)
+                    .body("User logged in successfully");
         }catch(Exception e){
-            return ResponseEntity.badRequest().build();
+            return ResponseEntity.internalServerError().body("Failed login: " + e.getMessage());
         }
     }
 
@@ -57,10 +68,41 @@ public class AuthenticationController {
         }
 
         try{
-            ResponseCookie cookie = customUserDetailsService.createUser(request);
-            return ResponseEntity.ok().header(HttpHeaders.SET_COOKIE, cookie.toString()).body("Account created successfully");
+            Optional<List<ResponseCookie>> responseCookieList = customUserDetailsService.createUser(request);
+            if(responseCookieList.isEmpty()){
+                return ResponseEntity.internalServerError().body("Failed To Generate Cookies While Creating Account");
+            }
+
+            ResponseCookie accessToken = responseCookieList.get().get(0);
+            ResponseCookie refreshToken = responseCookieList.get().get(1);
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.add(HttpHeaders.SET_COOKIE, accessToken.toString());
+            headers.add(HttpHeaders.SET_COOKIE, refreshToken.toString());
+
+            return ResponseEntity.ok()
+                    .headers(headers)
+                    .body("Account created successfully");
         }catch(Exception e){
-            return ResponseEntity.badRequest().body("Failed To Create Account");
+            return ResponseEntity.internalServerError().body("Failed To Create Account");
+        }
+    }
+
+    @PostMapping("/refresh")
+    public ResponseEntity<?> refresh(@CookieValue(name = "refresh_token") String refreshToken){
+
+        if(refreshToken.isEmpty()){
+            return ResponseEntity.badRequest().body("Refresh ");
+        }
+
+        try{
+            ResponseCookie accessToken = customUserDetailsService.refreshAccessToken(refreshToken);
+
+            return ResponseEntity.ok()
+                    .header(HttpHeaders.SET_COOKIE, accessToken.toString())
+                    .body("Token Refreshed");
+        }catch(Exception e){
+            return ResponseEntity.internalServerError().body("Failed To Refresh Access Token");
         }
     }
 }

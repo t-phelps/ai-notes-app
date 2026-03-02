@@ -1,34 +1,32 @@
 .account-container {
     display: flex;
-    flex-direction: row;       /* left + right side-by-side */
-    justify-content: center;   /* center whole container horizontally */
-    align-items: center;       /* center vertically */
-    height: 100vh;
+    flex-direction: column;      /* stack items vertically */
+    justify-content: flex-start; /* let content flow naturally */
+    align-items: center;         /* horizontally center all sections */
+    min-height: 100vh;
     width: 100%;
-
+    padding: 40px 0;
     background-image: url("../images/pexels-pixabay-219692.jpg");
     background-size: cover;
     background-repeat: no-repeat;
     background-position: center;
+    gap: 20px;                   /* spacing between stacked sections */
+    box-sizing: border-box;
 }
 
-.account-section {
+.account-section,
+.account-history,
+.purchase-history {
+    width: 80%;                  /* main width relative to container */
+    max-width: 600px;            /* don’t get too wide on large screens */
+    height: auto;
+    background-color: rgba(255, 255, 255, 0.7);
+    border-radius: 10px;
+    padding: 20px;
+    margin: 0 auto;              /* horizontal centering */
     display: flex;
-    flex-direction: column;
-    width: 50%;
-    height: 85%;
-    background-color: rgba(255, 255, 255, 0.7);
-    border-radius: 10px;
-    padding: 20px;
-}
-
-.account-history {
-    width: 25%;
-    height: 85%;
-    background-color: rgba(255, 255, 255, 0.7);
-    border-radius: 10px;
-    padding: 20px;
-    margin-left: 20px;
+    flex-direction: column;      /* stack inner content */
+    box-sizing: border-box;      /* include padding in width */
 }
 
 .account-info {
@@ -95,14 +93,4 @@
 
 .account-delete-btn:hover {
     background-color: red;
-}
-
-.purchase-history {
-    width: 25%;
-    height: 85%;
-    background-color: rgba(255, 255, 255, 0.7);
-    border-radius: 10px;
-    padding: 20px;
-    margin-left: 20px;
-    overflow-y: auto;
 }

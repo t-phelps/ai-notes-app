@@ -2,75 +2,63 @@ import {NavBar} from "./NavBar.jsx";
 import "../styles/LandingStyle.css";
 import {useEffect, useState} from "react";
 
-export const Landing = ({setUsername, setEmail, setUserNotesArray}) => {
+export const Landing = () => {
 
     const [title, setTitle] = useState("");
     const [text, setText] = useState("");
-
-
-    useEffect(() => {
-        async function fetchUserData() {
-            try {
-                const response = await fetch("http://localhost:8080/account/user-details", {
-                    method: "GET",
-                    headers: {
-                        "Content-Type": "application/json",
-                    },
-                    credentials: "include",
-                });
-
-                if (!response.ok) {
-                    throw new Error("Failed to fetch user data");
-                }
-
-                const data = await response.json();
-                if(!data?.username.trim() && !data?.email.trim()){
-                    throw new Error("Error within user fields, an empty fields exists");
-                }
-
-                setUsername(data.username);
-                setEmail(data.email);
-                setUserNotesArray(data?.userNotesDto || []);
-                console.log(data);
-                console.log("Success setting user fields");
-            }catch(err) {
-                console.error(err);
-            }
-        }
-        fetchUserData();
-    }, [setUsername, setEmail, setUserNotesArray]);
-
+    const [error, setError] = useState("");
 
     const saveNoteToCloud = async (e) => {
         e.preventDefault();
 
+        if (!text && !title) {
+            setError("Please enter a title or notes");
+            return;
+        }
+
         try {
-            if(!text && !title){
-                throw new Error("Please enter a title or notes");
-            }
-            const response = await fetch("http://localhost:8080/notes/to-cloud", {
+            let response = await fetch("http://localhost:8080/notes/to-cloud", {
                 method: "POST",
+                headers: { "Content-Type": "application/json" },
                 credentials: "include",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                    title: title,
-                    notes: text,
-                }),
+                body: JSON.stringify({ title, notes: text }),
             });
 
-            if (!response.ok) {
-                console.log("Failed with status: ", response.status);
-                throw new Error(response.statusText);
+            if(response.status === 401){
+                const newResponse = await fetch("http://localhost:8080/auth/refresh", {
+                    method: "POST",
+                    credentials: "include",
+                });
+
+                if(!newResponse.ok){
+                    setError("Failed to refresh token");
+                    return;
+                }
+
+                response = await fetch("http://localhost:8080/notes/to-cloud", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    credentials: "include",
+                    body: JSON.stringify({ title, notes: text }),
+                });
             }
 
-            console.log("Successfully saved to cloud");
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                setError(errorData.message || `Request failed with status ${response.status}`);
+                return;
+            }
 
-        }catch(error){
-            console.log("Error: ", error.message);
+            setError("");
+            alert("Successfully Saved To The Cloud!");
+            setTitle("");
+            setText("");
+            window.location.reload();
+        } catch (err) {
+            console.error("Request failed:", err);
+            setError(err.message || "Network Error. Please try again.");
         }
-    }
+    };
 
     const generateStudyGuide = async (e) => {
         e.preventDefault();
@@ -119,6 +107,13 @@ export const Landing = ({setUsername, setEmail, setUserNotesArray}) => {
                                 name={"text"}
                                 placeholder="Notes..."
                                 onChange={(e) => setText(e.target.value)} />
+
+                            {/* ERROR MESSAGE */}
+                            {error && (
+                                <p style={{ color: "red", marginTop: "10px" }}>
+                                    {error}
+                                </p>
+                            )}
 
                             <button
                                 className="create-note-button"

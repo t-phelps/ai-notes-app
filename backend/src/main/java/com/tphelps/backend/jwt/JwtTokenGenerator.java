@@ -3,15 +3,14 @@ package com.tphelps.backend.jwt;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.ResponseCookie;
-import org.springframework.security.authentication.AuthenticationCredentialsNotFoundException;
 import org.springframework.stereotype.Component;
 
 import java.nio.charset.StandardCharsets;
 import java.security.Key;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.Date;
 
 
@@ -41,7 +40,22 @@ public class JwtTokenGenerator {
         return Jwts.builder()
                 .setSubject(username)
                 .setIssuedAt(new Date())
-                .setExpiration(new Date(System.currentTimeMillis() + 300_000)) // 5 minutes
+                .setExpiration(Date.from(Instant.now().plus(Duration.ofMinutes(15)))) // instead of raw math, this makes it easier to read
+                .signWith(getSigningKey())
+                .compact();
+    }
+
+    /**
+     * Return a Jwts refresh token
+     * @param username - username to sign jwt
+     * @return - String containing the refresh token
+     */
+    public String getRefreshToken(String username){
+        return Jwts.builder()
+                .setSubject(username)
+                .setIssuedAt(new Date())
+                .setExpiration(Date.from(Instant.now().plus(Duration.ofDays(7))))
+                .claim("type", "refresh")
                 .signWith(getSigningKey())
                 .compact();
     }
