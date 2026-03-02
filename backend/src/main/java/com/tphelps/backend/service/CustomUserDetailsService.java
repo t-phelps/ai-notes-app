@@ -9,24 +9,26 @@ import com.tphelps.backend.repository.AccountRepository;
 import com.tphelps.backend.jwt.JwtTokenGenerator;
 import com.tphelps.backend.repository.AuthenticationRepository;
 import com.tphelps.backend.dtos.CreateAccountRequest;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseCookie;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-import test.generated.tables.pojos.Users;
 import org.springframework.security.core.userdetails.UserDetailsService;
 
+
+import test.generated.tables.pojos.Users;
+
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 @Service
 public class CustomUserDetailsService implements UserDetailsService {
@@ -78,9 +80,7 @@ public class CustomUserDetailsService implements UserDetailsService {
     public void changePassword(UserDetails principal, String oldPassword, String newPassword) {
 
         String username = verifyPassword(principal, oldPassword);
-
         String encodedPassword =  passwordEncoder.encode(newPassword);
-
         accountRepository.changePassword(username, encodedPassword);
 
         // fetch the updated userDetails
@@ -115,7 +115,7 @@ public class CustomUserDetailsService implements UserDetailsService {
      * @param request - a {@link CreateAccountRequest} with user details
      * @return a response cookie for user
      */
-    public ResponseCookie createUser(CreateAccountRequest request) {
+    public Optional<List<ResponseCookie>> createUser(CreateAccountRequest request) {
         String username = request.username();
         String email  = request.email();
         String password = request.password();
@@ -138,10 +138,10 @@ public class CustomUserDetailsService implements UserDetailsService {
 
         }catch(Exception e) {
             e.printStackTrace();
-            return null;
+            return Optional.empty();
         }
 
-        return generateUserCookie(username);
+        return Optional.of(List.of(generateUserCookie(username), generateRefreshToken(username)));
     }
 
     /**
@@ -177,20 +177,58 @@ public class CustomUserDetailsService implements UserDetailsService {
     }
 
     /**
-     * Authenticate user against the db
+     * Generate a jwt for the user
      * @param principal - the username
-     * @return - a response cookie for user, else null
+     * @return - a response cookie for user, else jwt exception
      */
     public ResponseCookie generateUserCookie(Object principal) {
         String username = principal.toString();
 
-        String jws = jwtTokenGenerator.getJwt(username);
+        String access_token = jwtTokenGenerator.getJwt(username);
 
         // return a response cookie to be stored in the front end
-        return ResponseCookie.from("jwt", jws)
+        return ResponseCookie.from("access_token", access_token)
                 .httpOnly(true)
                 .path("/")
-                .maxAge(3600)
+                .maxAge(Duration.ofMinutes(15))
+                .sameSite("Lax")
+                .secure(false)
+                .build();
+    }
+
+    /**
+     * Refresh the access token with the long-lived refresh token provided
+     * @param refreshToken - the long-lived token
+     * @return - a response cookie containing the
+     */
+    public ResponseCookie refreshAccessToken(String refreshToken){
+        String username = jwtTokenGenerator.getUsernameFromJwt(refreshToken);
+        String access_token = jwtTokenGenerator.getJwt(username);
+
+        return ResponseCookie.from("access_token", access_token)
+                .httpOnly(true)
+                .path("/")
+                .maxAge(Duration.ofMinutes(15))
+                .sameSite("Lax")
+                .secure(false)
+                .build();
+    }
+
+    /**
+     * Generate a long-lived token for the user to refresh against
+     * @param principal - the principle object containing details about the authenticated user
+     * @return a response cookie containing the refresh token
+     */
+    public ResponseCookie generateRefreshToken(Object principal) {
+        String username = principal.toString();
+        String jws = jwtTokenGenerator.getRefreshToken(username);
+
+        return ResponseCookie.from("refresh_token", jws)
+                .httpOnly(true)
+                .path("/")
+                .maxAge(Duration.ofDays(7))
+                .sameSite("Lax")
+                .secure(false)
                 .build();
     }
 
@@ -204,9 +242,5 @@ public class CustomUserDetailsService implements UserDetailsService {
                 .httpOnly(true)
                 .path("/")
                 .build();
-    }
-
-    public void blacklistCurrentUserCookie(Object principal) {
-
     }
 }

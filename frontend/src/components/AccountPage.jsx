@@ -6,13 +6,6 @@ import { NavBar } from "./NavBar.jsx";
 
 export const AccountPage = () => {
     const navigate = useNavigate();
-    const { state } = useLocation();
-
-    const username = state?.username ?? "";
-    const email = state?.email ?? "";
-    const userNotesArray = state?.userNotesArray ?? [];
-
-    console.log("Username:", username, "Email:", email, "Notes:", userNotesArray);
 
     // password change states
     const [oldPassword, setOldPassword] = useState("");
@@ -24,6 +17,10 @@ export const AccountPage = () => {
     const [confirmDeletePassword, setConfirmDeletePassword] = useState("");
 
     const [subscription, setSubscription] = useState([]);
+
+    const[username, setUsername] = useState("");
+    const[email, setEmail] = useState("");
+    const[ userNotesArray, setUserNotesArray] = useState([]);
 
     const schema = yup.object().shape({
         newPassword: yup
@@ -41,30 +38,46 @@ export const AccountPage = () => {
 
 
     useEffect(() => {
-        const fetchHistory = async () => {
-            try {
-                const response = await fetch("http://localhost:8080/account/purchase-history", {
-                    method: "GET",
-                    credentials: "include",
-                });
+        const fetchData = async () => {
+            try{
+                const [purchaseHistory, userDetails] = await Promise.all([
+                    fetch("http://localhost:8080/account/purchase-history", {
+                        credentials: "include",
+                    }),
+                    fetch("http://localhost:8080/account/user-details", {
+                        credentials: "include",
+                    })
+                ]);
 
-                if (!response.ok) throw new Error(response.statusText);
+                if(!purchaseHistory.ok || !userDetails.ok){
+                    throw new Error("Fetching user info failed");
+                }
 
-                const data = await response.json();
-                console.log("Purchase History:", data);
+                const historyData = await purchaseHistory.json();
+                const userData = await userDetails.json();
 
-                const formattedData = data.map((item) => ({
+                const formattedHistoryData = historyData.map((item) => ({
                     ...item,
-                    subscriptionPeriod: (Number(item.current_period_end) - Number(item.current_period_start)) / 86400,
+                    subscriptionPeriod:
+                        (Number(item.current_period_end) - Number(item.current_period_start))
                 }));
 
-                setSubscription(formattedData);
-            } catch (err) {
-                console.log(err);
+                const userNotesList = userData?.userNotesDto || [];
+                userNotesList.forEach((item) => {
+                    item.pathToNote = item.pathToNote.replace("gdrive:/ai-notes/", "");
+                });
+
+                setUsername(userData.username);
+                setEmail(userData.email);
+                setUserNotesArray(userNotesList);
+
+                setSubscription(formattedHistoryData);
+            }catch(err){
+                console.log(err)
             }
         };
 
-        fetchHistory();
+        fetchData();
     }, []);
 
     const handlePasswordChange = async (e) => {
@@ -121,6 +134,72 @@ export const AccountPage = () => {
             console.log(error);
         }
     };
+
+    const downloadDocument = async (path) => {
+        try{
+            let response = await fetch(`http://localhost:8080/notes/download-note`, {
+                method: "POST",
+                credentials: "include",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    path: path
+                })
+            });
+
+            if(response.status === 401){
+                console.log("Fetching new access token");
+
+                const status = await fetch("http://localhost:8080/auth/refresh", {
+                    credentials: "include",
+                });
+
+                if(!status.ok) throw new Error("Could not refresh access token");
+
+                response = await fetch(`http://localhost:8080/notes/download-note`, {
+                    method: "POST",
+                    credentials: "include",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({
+                        path: path
+                    })
+                });
+            }
+
+            if(!response.ok) throw new Error("Failed to download note");
+
+            // trigger download of document here
+            const blob = await response.blob();
+
+            // Extract filename from header
+            const contentDisposition = response.headers.get("Content-Disposition");
+            let filename = "download";
+
+            if (contentDisposition && contentDisposition.includes("filename=")) {
+                filename = contentDisposition
+                    .split("filename=")[1]
+                    .replace(/"/g, "");
+            }
+
+            // Create temporary link
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+
+            // Cleanup
+            a.remove();
+            window.URL.revokeObjectURL(url);
+
+        }catch(err){
+            console.log(err);
+        }
+    }
 
     return (
         <div>
@@ -196,8 +275,12 @@ export const AccountPage = () => {
                     ) : (
                         userNotesArray.map((note) => (
                             <div key={note.pathToNote} className="note-card">
-                                <strong>{note.pathToNote}</strong>
+                                <strong>{note.pathToNote}</strong>{" "}
                                 <span>Saved at: {note.savedAt?.slice(0, 5) ?? "??"}</span>
+                                <button className="download-btn"
+                                        type="submit"
+                                        onClick={() => downloadDocument(note.pathToNote)}>Download
+                                </button>
                             </div>
                         ))
                     )}

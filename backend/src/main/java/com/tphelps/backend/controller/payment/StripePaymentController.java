@@ -16,14 +16,13 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
 
-import static com.tphelps.backend.controller.authentication.AuthenticationValidator.validateUserAuthentication;
 @Controller
 @RequestMapping("/stripe")
 public class StripePaymentController {
@@ -44,26 +43,20 @@ public class StripePaymentController {
      * @return - a map containing the url for the redirect
      */
     @PostMapping("/create-checkout-session")
-    public ResponseEntity<?> createCheckoutSession(@RequestParam("lookup_key") String key){
-
-        Authentication authentication = validateUserAuthentication();
-        if(authentication != null) {
-            try {
-                if (key == null || key.isEmpty()) {
-                    return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
-                }
-                UserDetails userDetails = (UserDetails) authentication.getPrincipal();
-
-                Map<String, String> urlMap = stripePaymentService.getCreateCheckoutSessionRedirectUrl(key, userDetails.getUsername());
-                return ResponseEntity.ok(urlMap);
-            } catch (StripeException e) {
-                Map<String, String> errorMap = Map.of("error", e.getMessage());
-                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorMap);
+    public ResponseEntity<?> createCheckoutSession(
+            @RequestParam("lookup_key") String key,
+            @AuthenticationPrincipal UserDetails userDetails){
+        try {
+            if (key == null || key.isEmpty()) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
             }
-        }else{
-            return ResponseEntity
-                    .status(HttpStatus.UNAUTHORIZED)
-                    .body(Map.of("error", "You are not authorized to perform this operation"));
+            Map<String, String> urlMap = stripePaymentService
+                    .getCreateCheckoutSessionRedirectUrl(key, userDetails.getUsername());
+
+            return ResponseEntity.ok(urlMap);
+        } catch (StripeException e) {
+            Map<String, String> errorMap = Map.of("error", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorMap);
         }
     }
 
@@ -72,19 +65,12 @@ public class StripePaymentController {
      * @return - the redirect url for stripes customer portal
      */
     @PostMapping("/create-portal-session")
-    public ResponseEntity<?> createPortalSession(){
-        Authentication authentication = validateUserAuthentication();
-        if(authentication != null){
-            try{
-                Map<String, String> urlMap = stripePaymentService.getPortalSessionRedirectUrl(authentication);
-                return ResponseEntity.ok(urlMap);
-            }catch(Exception e){
-                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("error", e.getMessage()));
-            }
-        }else{
-            return ResponseEntity
-                    .status(HttpStatus.UNAUTHORIZED)
-                    .body(Map.of("error", "You are not authorized to perform this operation"));
+    public ResponseEntity<?> createPortalSession(@AuthenticationPrincipal UserDetails userDetails){
+        try{
+            Map<String, String> urlMap = stripePaymentService.getPortalSessionRedirectUrl(userDetails.getUsername());
+            return ResponseEntity.ok(urlMap);
+        }catch(Exception e){
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("error", e.getMessage()));
         }
     }
 

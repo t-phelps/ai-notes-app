@@ -12,8 +12,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
@@ -32,108 +31,87 @@ public class AccountController {
 
     /**
      * Allow a user to change their password while logged in
+     *
      * @param changePasswordRequest - the change password request dto containing old and new password
      * @return - ok on success, else unauthorized
      */
     @PostMapping("/change-password")
-    public ResponseEntity<?> changePassword(@RequestBody ChangePasswordRequest changePasswordRequest) {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+    public ResponseEntity<?> changePassword(
+            @RequestBody ChangePasswordRequest changePasswordRequest,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        try {
 
-        if(authentication != null && authentication.isAuthenticated()){
-            try {
+            // this has the browser delete the cookie when sent back
+            // this does NOT invalidate the cookie that is being deleted by the browser
+            // it can still be used, would need to implement a blacklist in db
+            ResponseCookie cookie = customUserDetailsService.invalidateUserCookie();
 
-                // this has the browser delete the cookie when sent back
-                // this does NOT invalidate the cookie that is being deleted by the browser
-                // it can still be used, would need to implement a blacklist in db
-                ResponseCookie cookie = customUserDetailsService.invalidateUserCookie();
+            customUserDetailsService.changePassword(
+                    userDetails,
+                    changePasswordRequest.oldPassword(),
+                    changePasswordRequest.newPassword());
 
-                customUserDetailsService.changePassword(
-                        (UserDetails) authentication.getPrincipal(),
-                        changePasswordRequest.oldPassword(),
-                        changePasswordRequest.newPassword());
+            return ResponseEntity.ok().header(HttpHeaders.SET_COOKIE, cookie.toString()).build();
 
-                return ResponseEntity.ok().header(HttpHeaders.SET_COOKIE, cookie.toString()).build();
-
-            }catch(IllegalArgumentException e){
-                return ResponseEntity.badRequest().build();
-            }
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().build();
         }
-
-        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
     }
 
     /**
      * Delete an account using the users password entered on the front end
+     *
      * @param deleteAccountRequest - delete account request dto containing the password
      * @return - <code>200 on success</code>, <code>401 if not authenticated</code>, <code>400 if bad request</code>
      */
     @PostMapping("/delete")
-    public ResponseEntity<?> delete(@RequestBody DeleteAccountRequest deleteAccountRequest) {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+    public ResponseEntity<?> delete(
+            @RequestBody DeleteAccountRequest deleteAccountRequest,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        try {
 
-        if(authentication != null && authentication.isAuthenticated()){
-            try{
+            String password = deleteAccountRequest.password();
 
-                String password = deleteAccountRequest.password();
+            // this has the browser delete the cookie when sent back
+            // this does NOT invalidate the cookie that is being deleted by the browser
+            // it can still be used, would need to implement a blacklist in db
+            ResponseCookie cookie = customUserDetailsService.invalidateUserCookie();
 
-                // this has the browser delete the cookie when sent back
-                // this does NOT invalidate the cookie that is being deleted by the browser
-                // it can still be used, would need to implement a blacklist in db
-                ResponseCookie cookie = customUserDetailsService.invalidateUserCookie();
+            customUserDetailsService.deleteAccount(
+                    userDetails,
+                    password
+            );
 
-                customUserDetailsService.deleteAccount(
-                        (UserDetails) authentication.getPrincipal(),
-                        password
-                );
-
-                return ResponseEntity.ok()
-                        .header(HttpHeaders.SET_COOKIE, cookie.toString())
-                        .body("Account deleted successfully");
-            }catch(IllegalArgumentException e){
-
-                return ResponseEntity.badRequest().build();
-            }
+            return ResponseEntity.ok()
+                    .header(HttpHeaders.SET_COOKIE, cookie.toString())
+                    .body("Account deleted successfully");
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().build();
         }
-
-        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
     }
 
     /**
      * Get the authenticated users details excluding password and stripe customer id
+     *
      * @return status 200 with pertinent user details if authenticated
      */
     @GetMapping("/user-details")
-    public ResponseEntity<?> getUserDetails() {
-
-        Authentication authentication = validateUserAuthentication();
-        if(authentication != null){
-            UserDetails userDetails = (UserDetails) authentication.getPrincipal();
-            UserDetailsResponseDto userDetailsResponseDto = customUserDetailsService.getUserHistory(userDetails.getUsername());
-
-            return ResponseEntity.ok(userDetailsResponseDto);
-        }
-
-        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+    public ResponseEntity<?> getUserDetails(@AuthenticationPrincipal UserDetails userDetails) {
+        UserDetailsResponseDto userDetailsResponseDto = customUserDetailsService.getUserHistory(userDetails.getUsername());
+        return ResponseEntity.ok().body(userDetailsResponseDto);
     }
 
     /**
      * Endpoint to get the users purchase history
+     *
      * @return - a {@link PurchaseHistoryResponseDto} containing the period for subscription and the status
      */
     @GetMapping("/purchase-history")
-    public ResponseEntity<?> getPurchaseHistory() {
-        Authentication authentication = validateUserAuthentication();
-        if(authentication != null){
-            UserDetails userDetails = (UserDetails) authentication.getPrincipal();
-            List<PurchaseHistoryResponseDto> responseDto = customUserDetailsService.getUserPurchaseHistory(userDetails.getUsername());
-
-            if(responseDto != null){
-                return ResponseEntity.ok(responseDto);
-            }
-
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+    public ResponseEntity<?> getPurchaseHistory(@AuthenticationPrincipal UserDetails userDetails) {
+        List<PurchaseHistoryResponseDto> purchaseHistoryResponseList = customUserDetailsService.getUserPurchaseHistory(userDetails.getUsername());
+        if (purchaseHistoryResponseList != null) {
+            return ResponseEntity.ok().body(purchaseHistoryResponseList);
         }
-
-        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
     }
 }

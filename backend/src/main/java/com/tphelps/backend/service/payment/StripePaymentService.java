@@ -77,13 +77,11 @@ public class StripePaymentService {
 
     /**
      * Service method for constructing a redirect url for stripe customer portal
-     * @param authentication - an authentication object containing an already authenticated user
+     * @param username - the username for the authenticated Principal
      * @return - map containing the portal session redirect url
      * @throws StripeException - if any stripe api error occurs
      */
-    public Map<String, String> getPortalSessionRedirectUrl(Authentication authentication) throws StripeException {
-        UserDetails userDetails = (UserDetails) authentication.getPrincipal();
-        String username = userDetails.getUsername();
+    public Map<String, String> getPortalSessionRedirectUrl(String username) throws StripeException {
 
         java.lang.String  stripeCustomerId= stripePaymentRepository.getUserStripeCustomerId(username);
 

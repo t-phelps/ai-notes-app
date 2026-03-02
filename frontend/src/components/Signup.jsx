@@ -71,10 +71,9 @@ export const Signup = () => {
             console.log("Signup successful");
             navigate("/landing");
         }catch(error){
-            setError(error.errors.join(", "));
+            setError(error.errors ? error.errors.join(", ") : "An unknown error occurred");
             console.log(error);
         }
-
     }
 
     return(

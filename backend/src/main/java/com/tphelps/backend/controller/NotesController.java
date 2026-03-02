@@ -4,20 +4,23 @@ import com.tphelps.backend.dtos.notes.SaveNotesRequest;
 import com.tphelps.backend.service.NotesService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
 
-import static com.tphelps.backend.controller.authentication.AuthenticationValidator.validateUserAuthentication;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.InputStream;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/notes")
 public class NotesController {
-
 
     private final NotesService notesService;
 
@@ -32,19 +35,49 @@ public class NotesController {
      * @return - response code indicating success or not
      */
     @PostMapping("/to-cloud")
-    public ResponseEntity<?> saveToCloud(@RequestBody SaveNotesRequest notes) {
-        Authentication authentication = validateUserAuthentication();
-        if(authentication == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-        }
+    public ResponseEntity<?> saveToCloud(
+            @RequestBody SaveNotesRequest notes,
+            @AuthenticationPrincipal UserDetails userDetails) {
 
         if(validateNotes(notes)) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
         }
 
         try {
-            notesService.saveNotesToCloud(notes, authentication);
+            notesService.saveNotesToCloud(notes, userDetails.getUsername());
             return ResponseEntity.ok().build();
+        }catch(IllegalStateException | EmptyResultDataAccessException e){
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    /**
+     * Sends the desired file to the front end as a stream. File comes from the remote via rclone http server
+     * @param body - contains the path of the file
+     * @return response containing the file stream on success
+     */
+    @PostMapping("/download-note")
+    public ResponseEntity<?> getDownloadNote(@RequestBody Map<String, String> body) {
+        String path = body.get("path");
+        if(path == null || path.isEmpty()){
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
+        }
+
+        try{
+            File file = notesService.fetchNoteFromGoogleDrive(path);
+
+            StreamingResponseBody stream = outputStream -> {
+                try(InputStream inputStream = new FileInputStream(file)){
+                    inputStream.transferTo(outputStream);
+                }finally{
+                    file.deleteOnExit();
+                }
+            };
+
+            return ResponseEntity.ok()
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + file.getName() + "\"")
+                    .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                    .contentLength(file.length()).body(stream);
         }catch(IllegalStateException | EmptyResultDataAccessException e){
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
@@ -57,10 +90,6 @@ public class NotesController {
      */
     @PostMapping("/generate-study-guide")
     public ResponseEntity<?> generateStudyGuide(SaveNotesRequest notes) {
-        Authentication authentication = validateUserAuthentication();
-        if(authentication == null) {
-            return  ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-        }
 
         if(validateNotes(notes)) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();

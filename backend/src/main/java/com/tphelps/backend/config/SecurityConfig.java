@@ -64,10 +64,10 @@ public class SecurityConfig {
                 .authorizeHttpRequests(requests -> {
                     requests
                             .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                            .requestMatchers("/auth/login", "/auth/create", "/stripe/webhook").permitAll()
+                            .requestMatchers("/auth/login", "/auth/create", "/auth/refresh", "/stripe/webhook").permitAll()
                             .requestMatchers("/stripe/create-checkout-session", "/stripe/create-portal-session",
                                     "/account/delete", "/account/change-password", "/account/user-details",
-                                    "/notes/to-cloud", "/notes/generate-study-guide").authenticated()
+                                    "/notes/to-cloud", "/notes/generate-study-guide", "/notes/download-note/**").authenticated()
                             .anyRequest().authenticated();
                 })
                 // disable default login forms

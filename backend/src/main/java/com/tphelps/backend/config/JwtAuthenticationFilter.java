@@ -53,6 +53,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 // this allows for calling SecurityContextHolder in protected endpoint to get an Authentication object
             }
         }catch(Exception e){
+            SecurityContextHolder.clearContext();
             System.out.println("JWT filter error: " + e.getMessage());
         }
         filterChain.doFilter(request, response);
@@ -64,14 +65,21 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
      * @return - a String containing the cookie
      */
     private String getJwtFromRequest(HttpServletRequest request) {
-        Cookie[] cookies = request.getCookies();
-        if (cookies != null) {
-            for (Cookie cookie : cookies) {
-                if (cookie.getName().equals("jwt")) {
+        // tries authorization header first
+        String bearer = request.getHeader("Authorization");
+        if (bearer != null && bearer.startsWith("Bearer ")) {
+            return bearer.substring(7);
+        }
+
+        // fall back to cookie
+        if (request.getCookies() != null) {
+            for (Cookie cookie : request.getCookies()) {
+                if ("access_token".equals(cookie.getName())) {
                     return cookie.getValue();
                 }
             }
         }
+
         return null;
     }
 }
