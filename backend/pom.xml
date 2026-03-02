@@ -37,8 +37,8 @@
                 <version>11.7.2</version>
                 <configuration>
                     <url>jdbc:postgresql://localhost:5434/mydb</url>
-                    <user>tphelps</user>
-                    <password>phelps99</password>
+                    <user>${env.DB_USER}</user>
+                    <password>${env.DB_PASSWORD}</password>
                     <locations>
                         <location>filesystem:src/main/resources/db/migration</location>
                     </locations>
