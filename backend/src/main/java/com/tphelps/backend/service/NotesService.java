@@ -25,6 +25,7 @@ public class NotesService {
 
     private final NotesRepository notesRepository;
     private final OpenAIClient client;
+    private static final String AI_NOTES_FOLDER = "ai-notes/";
 
     @Autowired
     public NotesService(NotesRepository notesRepository, OpenAIClient client) {
@@ -59,9 +60,10 @@ public class NotesService {
      * Service method for pulling a file from the Google Drive and returning it to the user
      * @param path - the path where the file is stored in the cloud
      */
-    public File fetchNoteFromGoogleDrive(String path){
+    public File fetchNoteFromGoogleDrive(String path, String username){
         String fileName = path.substring(path.lastIndexOf("/") + 1);
-        String pathToTempFile = rcloneHttpRequestGetFile(path) + "/" + fileName;
+        String updatedPath = AI_NOTES_FOLDER + username + "/" + fileName;
+        String pathToTempFile = rcloneHttpRequestGetFile(updatedPath);
         return new File(pathToTempFile);
     }
 

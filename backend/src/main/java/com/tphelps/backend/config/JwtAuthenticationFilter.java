@@ -50,7 +50,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                         new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
                 authenticationToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                 SecurityContextHolder.getContext().setAuthentication(authenticationToken); // stores authentication in thread-local storage (Security context holder)
-                // this allows for calling SecurityContextHolder in protected endpoint to get an Authentication object
             }
         }catch(Exception e){
             SecurityContextHolder.clearContext();

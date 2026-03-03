@@ -16,6 +16,7 @@ import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBo
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.InputStream;
+import java.nio.file.Files;
 import java.util.Map;
 
 @RestController
@@ -57,27 +58,33 @@ public class NotesController {
      * @return response containing the file stream on success
      */
     @PostMapping("/download-note")
-    public ResponseEntity<?> getDownloadNote(@RequestBody Map<String, String> body) {
+    public ResponseEntity<StreamingResponseBody> getDownloadNote(@RequestBody Map<String, String> body, @AuthenticationPrincipal UserDetails userDetails) {
         String path = body.get("path");
         if(path == null || path.isEmpty()){
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
         }
 
         try{
-            File file = notesService.fetchNoteFromGoogleDrive(path);
+            File file = notesService.fetchNoteFromGoogleDrive(path, userDetails.getUsername());
 
-            StreamingResponseBody stream = outputStream -> {
+            // causing very long log within LOG not ERROR
+            StreamingResponseBody stream = (StreamingResponseBody) outputStream -> {
                 try(InputStream inputStream = new FileInputStream(file)){
                     inputStream.transferTo(outputStream);
                 }finally{
-                    file.deleteOnExit();
+                    boolean deleted = file.delete();
+                    if(!deleted){
+                        System.out.println("Could not delete file");
+                    }
                 }
             };
 
             return ResponseEntity.ok()
                     .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + file.getName() + "\"")
+                    .header("Access-Control-Expose-Headers", "Content-Disposition")
                     .contentType(MediaType.APPLICATION_OCTET_STREAM)
-                    .contentLength(file.length()).body(stream);
+                    .contentLength(file.length())
+                    .body((StreamingResponseBody) stream);
         }catch(IllegalStateException | EmptyResultDataAccessException e){
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }

@@ -171,28 +171,13 @@ export const AccountPage = () => {
 
             if(!response.ok) throw new Error("Failed to download note");
 
-            // trigger download of document here
             const blob = await response.blob();
-
-            // Extract filename from header
-            const contentDisposition = response.headers.get("Content-Disposition");
-            let filename = "download";
-
-            if (contentDisposition && contentDisposition.includes("filename=")) {
-                filename = contentDisposition
-                    .split("filename=")[1]
-                    .replace(/"/g, "");
-            }
-
-            // Create temporary link
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement("a");
             a.href = url;
-            a.download = filename;
+            a.download = "note.txt";
             document.body.appendChild(a);
             a.click();
-
-            // Cleanup
             a.remove();
             window.URL.revokeObjectURL(url);
 

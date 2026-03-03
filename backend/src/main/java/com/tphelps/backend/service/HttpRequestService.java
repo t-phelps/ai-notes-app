@@ -8,6 +8,7 @@ import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.util.EntityUtils;
+import org.jooq.codegen.JavaGenerator;
 import org.jooq.tools.json.JSONObject;
 import org.springframework.beans.factory.annotation.Value;
 
@@ -16,6 +17,7 @@ import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
@@ -63,13 +65,20 @@ public class HttpRequestService {
      */
     public static String rcloneHttpRequestGetFile(String path){
         try {
-            String pathToTempFile = new File(System.getProperty("java.io.tmpdir")).getAbsolutePath();
+            String tempDir = System.getProperty("java.io.tmpdir");
+            String fileName = path.substring(path.lastIndexOf("/") + 1);
+            String fullPath = tempDir + File.separator + fileName;
 
-            JSONObject object = createJsonObjectForFetch(path, pathToTempFile);
+            JSONObject object = createJsonObjectForFetch(path, fileName);
 
             buildHttpPostRequest(object);
 
-            return pathToTempFile;
+            File f = new File(tempDir + "/" + fileName);
+            if(!f.exists() || !f.isFile()) {
+                throw new IllegalStateException("File didn't transfer from the remote into local disk storage");
+            }
+
+            return fullPath;
 
         }catch(URISyntaxException | IOException e){
             throw new IllegalStateException(e);
@@ -91,23 +100,16 @@ public class HttpRequestService {
      * @throws IOException
      */
     private static void buildHttpPostRequest(JSONObject jsonObject) throws URISyntaxException, IOException {
-        URI uri = new URIBuilder()
-                .setScheme("http")
-                .setHost("127.0.0.1")
-                .setPort(5572)
-                .setPath("/operations/copyfile")
-                .build();
+        HttpPost post = new HttpPost("http://127.0.0.1:5572/operations/copyfile");
+        post.setHeader("Content-Type", "application/json; charset=UTF-8");
 
-        // build our post request with header and entity (jsonObject)
-        HttpPost post = new HttpPost(uri);
-        post.setHeader("Content-Type", "application/json");
-        post.setEntity(new StringEntity(jsonObject.toString()));
+        // Make sure entity is UTF-8 encoded and has correct content length
+        StringEntity entity = new StringEntity(jsonObject.toString(), StandardCharsets.UTF_8);
+        entity.setContentType("application/json; charset=UTF-8");
+        post.setEntity(entity);
 
         String response = executePostRequest(post);
-
-        if(response == null){
-            throw new IOException("Response from http request is null, Rclone server could be down");
-        }
+        System.out.println("Rclone response: " + response);
     }
 
     /**
@@ -144,17 +146,17 @@ public class HttpRequestService {
     /**
      * Copy file from remote into local /tmp dir for temporary storage
      * @param path - the path of the file in the remote
-     * @param pathToTempFile - the path to the temp file created in /tmp
+     * @param fileName - name of file to be stored in /tmp
      * @return - a JSONObject containing the necessary info for a rclone remote http server call
      * @throws IOException
      */
-    private static JSONObject createJsonObjectForFetch(String path, String pathToTempFile) throws IOException {
+    private static JSONObject createJsonObjectForFetch(String path, String fileName) throws IOException {
 
         JSONObject jsonObject = new JSONObject();
         jsonObject.put("srcFs", "gdrive:");
         jsonObject.put("srcRemote", path);
-        jsonObject.put("dstFs", pathToTempFile);
-        jsonObject.put("dstRemote", "");
+        jsonObject.put("dstFs", "tmp:");
+        jsonObject.put("dstRemote", fileName);
 
         return jsonObject;
     }
@@ -166,17 +168,19 @@ public class HttpRequestService {
      * @throws IOException
      */
     private static String executePostRequest(HttpPost post) throws IOException {
-        try(CloseableHttpClient httpClient = HttpClients.createDefault()) {
-            CloseableHttpResponse response = httpClient.execute(post);
+        try (CloseableHttpClient httpClient = HttpClients.createDefault();
+             CloseableHttpResponse response = httpClient.execute(post)) {
+
             HttpEntity entity = response.getEntity();
 
-            if(entity != null) {
-                return EntityUtils.toString(entity);
+            if (entity == null) {
+                throw new IOException("No response from rclone RC server");
             }
 
-            return null;
+            // consume fully as UTF-8
+            String result = EntityUtils.toString(entity, StandardCharsets.UTF_8);
+            EntityUtils.consume(entity); // make sure entity is fully consumed
+            return result;
         }
     }
-
-
 }
