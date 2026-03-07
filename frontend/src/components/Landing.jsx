@@ -49,11 +49,7 @@ export const Landing = () => {
                 return;
             }
 
-            setError("");
             alert("Successfully Saved To The Cloud!");
-            setTitle("");
-            setText("");
-            window.location.reload();
         } catch (err) {
             console.error("Request failed:", err);
             setError(err.message || "Network Error. Please try again.");
@@ -64,24 +60,72 @@ export const Landing = () => {
         e.preventDefault();
 
         try {
-            const response = await fetch("http://localhost:8080/notes/generate-study-guide", {
+            let response = await fetch("http://localhost:8080/notes/generate-study-guide", {
                 method: "POST",
                 credentials: "include",
                 headers: {
                     "Content-Type": "application/json",
                 },
                 body: JSON.stringify({
+                    title,
                     notes: text,
                 }),
             });
+
+            if(response.status === 401){
+                const newResponse = await fetch("http://localhost:8080/auth/refresh", {
+                    method: "POST",
+                    credentials: "include",
+                });
+
+                if(!newResponse.ok){
+                    setError("Failed to refresh token");
+                    return;
+                }
+
+                response = await fetch("http://localhost:8080/notes/generate-study-guide", {
+                    method: "POST",
+                    credentials: "include",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({
+                        title,
+                        notes: text,
+                    }),
+                });
+            }
 
             if (!response.ok) {
                 console.log("Failed with status: ", response.status);
                 throw new Error(response.statusText);
             }
 
-            const data = await response.json();
-            console.log("Data received: ", data);
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder();
+            let result = "";
+
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+                if (value) {
+                    result += decoder.decode(value, { stream: true });
+                }
+            }
+
+            result += decoder.decode(); // flush remaining
+            console.log("Final result:", result);
+
+            console.log("Starting file download");
+            const blob = new Blob([result], { type: "text/plain" });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = "studyGuide.txt";
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            window.URL.revokeObjectURL(url);
 
             console.log("Generated notes");
         }catch(error){

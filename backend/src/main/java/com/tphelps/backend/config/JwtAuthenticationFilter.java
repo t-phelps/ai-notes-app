@@ -8,10 +8,12 @@ import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Bean;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
+import org.springframework.security.web.context.RequestAttributeSecurityContextRepository;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
@@ -23,6 +25,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     @Autowired
     private JwtTokenGenerator jwtTokenGenerator;
+
+    @Autowired
+    private RequestAttributeSecurityContextRepository requestAttributeSecurityContextRepository;
 
     /**
      * Before we get to controller, needs to check if there is a token in the header
@@ -50,6 +55,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                         new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
                 authenticationToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                 SecurityContextHolder.getContext().setAuthentication(authenticationToken); // stores authentication in thread-local storage (Security context holder)
+                // saves context to be restored within async or other types of threads
+                requestAttributeSecurityContextRepository.saveContext(SecurityContextHolder.getContext(), request, response);
             }
         }catch(Exception e){
             SecurityContextHolder.clearContext();

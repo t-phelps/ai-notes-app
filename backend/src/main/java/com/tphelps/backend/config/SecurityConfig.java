@@ -16,6 +16,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.context.RequestAttributeSecurityContextRepository;
 import org.springframework.web.cors.CorsConfiguration;
 
 import java.util.List;
@@ -102,6 +103,12 @@ public class SecurityConfig {
     @Bean
     public JwtAuthenticationFilter jwtAuthenticationFilter() throws Exception {
         return new JwtAuthenticationFilter();
+    }
+
+
+    @Bean
+    public RequestAttributeSecurityContextRepository getRequestAttributeSecurityContextRepository() {
+        return new RequestAttributeSecurityContextRepository();
     }
 }
 
