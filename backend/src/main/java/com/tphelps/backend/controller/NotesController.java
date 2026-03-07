@@ -1,7 +1,10 @@
 package com.tphelps.backend.controller;
 
+import com.tphelps.backend.controller.pojos.StudyGuide;
 import com.tphelps.backend.dtos.notes.SaveNotesRequest;
 import com.tphelps.backend.service.NotesService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.http.HttpHeaders;
@@ -15,14 +18,18 @@ import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBo
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.Map;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/notes")
 public class NotesController {
 
+    private static final Logger log = LoggerFactory.getLogger(NotesController.class);
     private final NotesService notesService;
 
     @Autowired
@@ -84,7 +91,7 @@ public class NotesController {
                     .header("Access-Control-Expose-Headers", "Content-Disposition")
                     .contentType(MediaType.APPLICATION_OCTET_STREAM)
                     .contentLength(file.length())
-                    .body((StreamingResponseBody) stream);
+                    .body(stream);
         }catch(IllegalStateException | EmptyResultDataAccessException e){
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
@@ -96,15 +103,33 @@ public class NotesController {
      * @return response containing study guide on success
      */
     @PostMapping("/generate-study-guide")
-    public ResponseEntity<?> generateStudyGuide(SaveNotesRequest notes) {
+    public ResponseEntity<StreamingResponseBody> generateStudyGuide(@RequestBody SaveNotesRequest notes) {
 
         if(validateNotes(notes)) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
         }
         try{
             // TODO finish implementation
-            notesService.generateStudyGuide(notes.notes());
-            return ResponseEntity.ok().build();
+            StudyGuide studyGuide = notesService.generateStudyGuide(notes.title(), notes.notes());
+            StreamingResponseBody stream = outputStream -> {
+                try{
+                    for(int i = 0; i < studyGuide.questions().size(); i++){
+                        String line = String.format(
+                                "%d. %s\n    %c. %s\n",
+                                i + 1,
+                                studyGuide.questions().get(i).question(),
+                                'a',
+                                studyGuide.questions().get(i).answer());
+                        outputStream.write(line.getBytes(StandardCharsets.UTF_8));
+                        outputStream.flush();
+                    }
+                }catch(IOException e){
+                    e.printStackTrace();
+                }
+            };
+            return ResponseEntity.ok()
+                    .contentType(MediaType.TEXT_PLAIN)
+                    .body(stream);
         }catch(Exception e){
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }

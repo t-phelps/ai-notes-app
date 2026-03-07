@@ -2,22 +2,29 @@ package com.tphelps.backend.service;
 
 import com.openai.client.OpenAIClient;
 import com.openai.client.okhttp.OpenAIOkHttpClient;
+import com.openai.core.JsonSchemaLocalValidation;
 import com.openai.models.ChatModel;
 import com.openai.models.chat.completions.StructuredChatCompletion;
 import com.openai.models.chat.completions.StructuredChatCompletionCreateParams;
+import com.tphelps.backend.controller.pojos.Steps;
+import com.tphelps.backend.controller.pojos.StudyGuide;
 import com.tphelps.backend.dtos.notes.SaveNotesRequest;
 import com.tphelps.backend.repository.NotesRepository;
 
 import static com.tphelps.backend.service.HttpRequestService.rcloneHttpRequestGetFile;
 import static com.tphelps.backend.service.HttpRequestService.rcloneHttpRequestPost;
 
+import org.jooq.Path;
 import org.jooq.tools.json.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.stereotype.Service;
 
 import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.List;
+import java.util.Optional;
 
 
 @Service
@@ -67,20 +74,58 @@ public class NotesService {
         return new File(pathToTempFile);
     }
 
-    public String generateStudyGuide(String notes){
+    public StudyGuide generateStudyGuide(String title, String notes) throws IllegalStateException{
+
         // Build the request parameters
-        StructuredChatCompletionCreateParams<String> params = StructuredChatCompletionCreateParams.<String>builder()
+        StructuredChatCompletionCreateParams<StudyGuide> params = StructuredChatCompletionCreateParams.<StudyGuide>builder()
                 .addUserMessage("Generate a study guide for the following notes: " + notes)
-                .model(ChatModel.GPT_4)
-                .responseFormat(String.class)
+                .model("gpt-4o-mini")
+                .responseFormat(StudyGuide.class)
                 .build();
 
-        List<StructuredChatCompletion.Choice<String>> results = client.chat().completions().create(params).choices();
+        List<StructuredChatCompletion.Choice<StudyGuide>> results = client.chat().completions().create(params).choices();
 
         // Extract the actual content from the Choice object
-        String studyGuide = String.valueOf(results.get(0).message().content());
+        Optional<StudyGuide> res = results.get(0).message().content();
+        if(res.isEmpty()) {
+            throw new IllegalStateException("Result from OpenAI API is empty");
+        }
+        return res.get();
+//        return writeStudyGuideToFile(res.get(), title);
+    }
 
-        return studyGuide;
+    /**
+     * Write study guide to file with specific formatting
+     * @param studyGuide - the study guide returned from openai api response
+     * @param title - title of their notes
+     * @return - file object containing their study guide
+     * @throws IllegalStateException
+     */
+    private File writeStudyGuideToFile(StudyGuide studyGuide, String title)throws IllegalStateException {
+        String tempDir = System.getProperty("java.io.tmpdir");
+        String fullPath = tempDir + File.separator + title + "StudyGuide.txt";
+        File file = new File(fullPath);
+
+        if(!file.exists() || !file.isFile()){
+            throw new  IllegalStateException("File does not exist or is not a file");
+        }
+
+        try(FileWriter fileWriter = new FileWriter(file)){
+            List<Steps> responses = studyGuide.questions();
+            for(int i = 0; i < studyGuide.questions().size(); i++){
+                fileWriter.write(
+                        String.format(
+                                "%d. %s\n    %c. %s\n",
+                                i + 1,
+                                responses.get(i).question(),
+                                'a',
+                                responses.get(i).answer()
+                        ));
+            }
+        }catch(IOException e){
+            throw new IllegalStateException("Error writing study guide to file");
+        }
+        return file;
     }
 
 }
