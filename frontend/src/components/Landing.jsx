@@ -1,6 +1,8 @@
 import {NavBar} from "./NavBar.jsx";
 import "../styles/LandingStyle.css";
 import {useEffect, useState} from "react";
+import streamDownloadToFile from "./functions/StreamDownloadToFile";
+import retryAuth from "./functions/retryAuth";
 
 export const Landing = () => {
 
@@ -17,31 +19,14 @@ export const Landing = () => {
         }
 
         try {
-            let response = await fetch("http://localhost:8080/notes/to-cloud", {
+            const options = {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 credentials: "include",
                 body: JSON.stringify({ title, notes: text }),
-            });
+            };
 
-            if(response.status === 401){
-                const newResponse = await fetch("http://localhost:8080/auth/refresh", {
-                    method: "POST",
-                    credentials: "include",
-                });
-
-                if(!newResponse.ok){
-                    setError("Failed to refresh token");
-                    return;
-                }
-
-                response = await fetch("http://localhost:8080/notes/to-cloud", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    credentials: "include",
-                    body: JSON.stringify({ title, notes: text }),
-                });
-            }
+            let response = await retryAuth("http://localhost:8080/notes/to-cloud", options);
 
             if (!response.ok) {
                 const errorData = await response.json().catch(() => ({}));
@@ -60,7 +45,7 @@ export const Landing = () => {
         e.preventDefault();
 
         try {
-            let response = await fetch("http://localhost:8080/notes/generate-study-guide", {
+            const options = {
                 method: "POST",
                 credentials: "include",
                 headers: {
@@ -70,62 +55,16 @@ export const Landing = () => {
                     title,
                     notes: text,
                 }),
-            });
+            };
+            let response = await fetch("http://localhost:8080/notes/generate-study-guide", options);
 
-            if(response.status === 401){
-                const newResponse = await fetch("http://localhost:8080/auth/refresh", {
-                    method: "POST",
-                    credentials: "include",
-                });
-
-                if(!newResponse.ok){
-                    setError("Failed to refresh token");
-                    return;
-                }
-
-                response = await fetch("http://localhost:8080/notes/generate-study-guide", {
-                    method: "POST",
-                    credentials: "include",
-                    headers: {
-                        "Content-Type": "application/json",
-                    },
-                    body: JSON.stringify({
-                        title,
-                        notes: text,
-                    }),
-                });
-            }
 
             if (!response.ok) {
                 console.log("Failed with status: ", response.status);
                 throw new Error(response.statusText);
             }
 
-            const reader = response.body.getReader();
-            const decoder = new TextDecoder();
-            let result = "";
-
-            while (true) {
-                const { done, value } = await reader.read();
-                if (done) break;
-                if (value) {
-                    result += decoder.decode(value, { stream: true });
-                }
-            }
-
-            result += decoder.decode(); // flush remaining
-            console.log("Final result:", result);
-
-            console.log("Starting file download");
-            const blob = new Blob([result], { type: "text/plain" });
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement("a");
-            a.href = url;
-            a.download = "studyGuide.txt";
-            document.body.appendChild(a);
-            a.click();
-            a.remove();
-            window.URL.revokeObjectURL(url);
+            await streamDownloadToFile(response, "studyGuide.txt");
 
             console.log("Generated notes");
         }catch(error){

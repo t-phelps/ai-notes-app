@@ -3,6 +3,8 @@ import "../styles/AccountStyle.css";
 import * as yup from "yup";
 import { useNavigate, useLocation } from "react-router-dom";
 import { NavBar } from "./NavBar.jsx";
+import streamDownloadToFile from "./functions/StreamDownloadToFile";
+import retryAuth from "./functions/retryAuth";
 
 export const AccountPage = () => {
     const navigate = useNavigate();
@@ -88,7 +90,7 @@ export const AccountPage = () => {
                 confirmNewPassword: confirmedNewPassword,
             });
 
-            const response = await fetch("http://localhost:8080/account/change-password", {
+            const options = {
                 method: "POST",
                 credentials: "include",
                 headers: { "Content-Type": "application/json" },
@@ -96,7 +98,8 @@ export const AccountPage = () => {
                     newPassword,
                     oldPassword,
                 }),
-            });
+            };
+            const response = await retryAuth("http://localhost:8080/account/change-password", options);
 
             if (!response.ok) throw new Error("Failed to change password");
 
@@ -117,14 +120,15 @@ export const AccountPage = () => {
         }
 
         try {
-            const response = await fetch("http://localhost:8080/account/delete", {
+            const options = {
                 method: "POST",
                 credentials: "include",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     password: deletePassword,
                 }),
-            });
+            }
+            const response = await retryAuth("http://localhost:8080/account/delete", options);
 
             if (!response.ok) throw new Error("Failed to delete account");
 
@@ -137,7 +141,7 @@ export const AccountPage = () => {
 
     const downloadDocument = async (path) => {
         try{
-            let response = await fetch(`http://localhost:8080/notes/download-note`, {
+            const options = {
                 method: "POST",
                 credentials: "include",
                 headers: {
@@ -146,41 +150,12 @@ export const AccountPage = () => {
                 body: JSON.stringify({
                     path: path
                 })
-            });
-
-            if(response.status === 401){
-                console.log("Fetching new access token");
-
-                const status = await fetch("http://localhost:8080/auth/refresh", {
-                    credentials: "include",
-                });
-
-                if(!status.ok) throw new Error("Could not refresh access token");
-
-                response = await fetch(`http://localhost:8080/notes/download-note`, {
-                    method: "POST",
-                    credentials: "include",
-                    headers: {
-                        "Content-Type": "application/json",
-                    },
-                    body: JSON.stringify({
-                        path: path
-                    })
-                });
             }
+            let response = await retryAuth(`http://localhost:8080/notes/download-note`, options);
 
-            if(!response.ok) throw new Error("Failed to download note");
-
-            const blob = await response.blob();
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement("a");
-            a.href = url;
-            a.download = "note.txt";
-            document.body.appendChild(a);
-            a.click();
-            a.remove();
-            window.URL.revokeObjectURL(url);
-
+            console.log("Starting download");
+            await streamDownloadToFile(response, path + ".txt")
+            console.log("Download complete");
         }catch(err){
             console.log(err);
         }
