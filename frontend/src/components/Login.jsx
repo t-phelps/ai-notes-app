@@ -2,8 +2,10 @@ import {useState } from "react";
 import * as yup from "yup";
 import { useNavigate } from "react-router-dom";
 import "../styles/LoginStyle.css";
+import "../styles/Global.css";
 import GoogleButton from 'react-google-button';
 import { Link } from "react-router-dom";
+
 
 export const LoginComponent = () => {
     const [username, setUsername] = useState("");
@@ -54,14 +56,14 @@ export const LoginComponent = () => {
     }
 
     return (
-        <div className="login-container">
-            <form className="login-form" onSubmit={handleLoginSubmit}>
+        <div className="regular-container">
+            <form className="regular-form" onSubmit={handleLoginSubmit}>
                 <h2>Welcome To Notes-AI</h2>
-                <label className={"login-label"} htmlFor="username">Username:</label>
-                <input className={"login-input"} type="text" placeholder="Username" id="username" value={username} onChange={(e) => setUsername(e.target.value)} />
-                <label className={"login-label"} htmlFor="password">Password:</label>
-                <input className={"login-input"} type="password" placeholder="Password"  id="password" value={password} onChange={(e) => setPassword(e.target.value)} />
-                <button className={"login-button"} type="submit">Login</button>
+                <label className={"regular-label"} htmlFor="username">Username:</label>
+                <input className={"regular-input"} type="text" placeholder="Username" id="username" value={username} onChange={(e) => setUsername(e.target.value)} />
+                <label className={"regular-label"} htmlFor="password">Password:</label>
+                <input className={"regular-input"} type="password" placeholder="Password"  id="password" value={password} onChange={(e) => setPassword(e.target.value)} />
+                <button className={"regular-button"} type="submit">Login</button>
                 <p>Forgot Password? <Link to="/reset-password">Reset!</Link></p>
                 <p className="or-message">------------- or -------------</p>
                 <GoogleButton className="google-button" type="light" onClick={handleGoogleLogin} />

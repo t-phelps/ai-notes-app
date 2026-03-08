@@ -62,8 +62,8 @@
                     <jdbc>
                         <driver>org.postgresql.Driver</driver>
                         <url>jdbc:postgresql://localhost:5434/mydb</url>
-                        <user>tphelps</user>
-                        <password>phelps99</password>
+                        <user>${env.DB_USER}</user>
+                        <password>${env.DB_PASSWORD}</password>
                     </jdbc>
                     <generator>
                         <name>org.jooq.codegen.JavaGenerator</name>
@@ -266,6 +266,13 @@
             <groupId>com.openai</groupId>
             <artifactId>openai-java-spring-boot-starter</artifactId>
             <version>4.9.0</version>
+        </dependency>
+
+        <!-- Spring Mail-->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-mail</artifactId>
+            <version>3.5.7</version>
         </dependency>
     </dependencies>
 
