@@ -42,14 +42,12 @@ export const AccountPage = () => {
     useEffect(() => {
         const fetchData = async () => {
             try{
-                const [purchaseHistory, userDetails] = await Promise.all([
-                    fetch("http://localhost:8080/account/purchase-history", {
-                        credentials: "include",
-                    }),
-                    fetch("http://localhost:8080/account/user-details", {
-                        credentials: "include",
-                    })
-                ]);
+                const options = {
+                    credentials: "include",
+                };
+
+                const purchaseHistory = await retryAuth("http://localhost:8080/account/purchase-history", options);
+                const userDetails = await retryAuth("http://localhost:8080/account/user-details", options);
 
                 if(!purchaseHistory.ok || !userDetails.ok){
                     throw new Error("Fetching user info failed");

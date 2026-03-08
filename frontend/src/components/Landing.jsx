@@ -9,12 +9,57 @@ export const Landing = () => {
     const [title, setTitle] = useState("");
     const [text, setText] = useState("");
     const [error, setError] = useState("");
+    const [userNotesDataSet, setUserNotesDataSet] = useState(() => new Set());
+    const [username, setUsername] = useState("");
+
+
+    useEffect(() => {
+        const fetchUserNotesData = async () => {
+            try {
+                const options = {
+                    credentials: "include",
+                }
+
+                const userDetails = await retryAuth("http://localhost:8080/account/user-details", options);
+
+                if (!userDetails.ok) {
+                    console.error("Error fetching user details within useEffect");
+                    return;
+                }
+
+                const userDetailsResponse = await userDetails.json();
+                console.log(userDetailsResponse.username);
+                console.log(userDetailsResponse);
+                const formattedUserNotesSet = new Set(
+                    userDetailsResponse.userNotesDto.map(note =>
+                        note.pathToNote
+                            .replace(`gdrive:/ai-notes/${userDetailsResponse.username}/`, "")
+                            .replace(".txt", "")
+                    )
+                );
+
+                console.log(formattedUserNotesSet);
+                setUserNotesDataSet(formattedUserNotesSet);
+                console.log("User notes accessed");
+
+            }catch(err){
+                console.error(err);
+            }
+        };
+
+        fetchUserNotesData();
+    }, []);
 
     const saveNoteToCloud = async (e) => {
         e.preventDefault();
 
         if (!text && !title) {
             setError("Please enter a title or notes");
+            return;
+        }
+
+        if(userNotesDataSet.has(title)){
+            setError("Title already exists, please enter a new one");
             return;
         }
 
@@ -35,6 +80,11 @@ export const Landing = () => {
             }
 
             alert("Successfully Saved To The Cloud!");
+            setUserNotesDataSet(prev => {
+                const updated = new Set(prev);
+                updated.add(title);
+                return updated;
+            });
         } catch (err) {
             console.error("Request failed:", err);
             setError(err.message || "Network Error. Please try again.");

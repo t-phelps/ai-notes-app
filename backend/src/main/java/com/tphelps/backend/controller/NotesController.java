@@ -74,8 +74,7 @@ public class NotesController {
         try{
             File file = notesService.fetchNoteFromGoogleDrive(path, userDetails.getUsername());
 
-            // causing very long log within LOG not ERROR
-            StreamingResponseBody stream = (StreamingResponseBody) outputStream -> {
+            StreamingResponseBody stream = outputStream -> {
                 try(InputStream inputStream = new FileInputStream(file)){
                     inputStream.transferTo(outputStream);
                 }finally{
@@ -88,7 +87,6 @@ public class NotesController {
 
             return ResponseEntity.ok()
                     .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + file.getName() + "\"")
-                    .header("Access-Control-Expose-Headers", "Content-Disposition")
                     .contentType(MediaType.APPLICATION_OCTET_STREAM)
                     .contentLength(file.length())
                     .body(stream);
