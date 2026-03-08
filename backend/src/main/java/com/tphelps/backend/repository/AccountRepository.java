@@ -88,10 +88,10 @@ public class AccountRepository {
                 .from(USERS)
                 .where(USERS.USERNAME.eq(username))
                 .fetchOne();
-        
+
         return new  UserDetailsResponseDto(
-                row.get(USERS.USERNAME),
                 row.get(USERS.EMAIL),
+                row.get(USERS.USERNAME),
                 userNotesDto);
     }
 
