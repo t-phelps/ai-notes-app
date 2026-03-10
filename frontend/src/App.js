@@ -6,11 +6,12 @@ import {
     Navigate,
 } from "react-router-dom";
 import {LoginComponent} from "./components/Login.jsx";
-import {ResetPassword} from "./components/ResetPassword.jsx";
+import {ResetPasswordWithEmail} from "./components/ResetPasswordWithEmail.jsx";
 import {Signup} from "./components/Signup.jsx";
 import {AccountPage} from "./components/AccountPage.jsx";
 import {Landing} from "./components/Landing.jsx";
 import {Payment} from "./components/Payment.jsx";
+import {ResetPassword} from "./components/ResetPassword";
 
 function App() {
 
@@ -24,11 +25,12 @@ function App() {
       <BrowserRouter>
           <Routes>
               <Route path="/" element={<LoginComponent />} />
-              <Route path="/reset-password" element={<ResetPassword />} />
+              <Route path="/reset-password" element={<ResetPasswordWithEmail />} />
               <Route path={"/create-account"} element={<Signup />} />
               <Route path={"/account"} element={<AccountPage/>} />
               <Route path={"/landing"} element={<Landing />} />
               <Route path={"/payment"} element={<Payment />} />
+              <Route path={"/reset"} element={<ResetPassword />} />
           </Routes>
       </BrowserRouter>
   );

@@ -10,6 +10,9 @@ import com.tphelps.backend.jwt.JwtTokenGenerator;
 import com.tphelps.backend.repository.AuthenticationRepository;
 import com.tphelps.backend.dtos.CreateAccountRequest;
 
+import org.apache.commons.codec.digest.DigestUtils;
+import org.jooq.DSLContext;
+import org.jooq.impl.DSL;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseCookie;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -27,8 +30,12 @@ import test.generated.tables.pojos.Users;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
+
+import static org.apache.commons.codec.digest.DigestUtils.sha256;
 
 @Service
 public class CustomUserDetailsService implements UserDetailsService {
@@ -37,15 +44,19 @@ public class CustomUserDetailsService implements UserDetailsService {
     private final PasswordEncoder passwordEncoder;
     private final AccountRepository accountRepository;
     private final JwtTokenGenerator jwtTokenGenerator;
+    private final DSLContext dslContext;
 
     @Autowired
     public CustomUserDetailsService(AuthenticationRepository authenticationRepository,
                                     PasswordEncoder passwordEncoder,
-                                    AccountRepository accountRepository, JwtTokenGenerator jwtTokenGenerator) {
+                                    AccountRepository accountRepository,
+                                    JwtTokenGenerator jwtTokenGenerator,
+                                    DSLContext dslContext) {
         this.authenticationRepository = authenticationRepository;
         this.passwordEncoder = passwordEncoder;
         this.accountRepository = accountRepository;
         this.jwtTokenGenerator = jwtTokenGenerator;
+        this.dslContext = dslContext;
     }
 
     /**
@@ -94,6 +105,26 @@ public class CustomUserDetailsService implements UserDetailsService {
 
         // reset the security context with the new authentication object
         SecurityContextHolder.getContext().setAuthentication(newAuthentication);
+    }
+
+    /**
+     * Service Method for a password reset request // cpu intensive with 2 encode calls??
+     */
+    public void resetPassword(String password, UUID uuid) throws IllegalArgumentException{
+
+        dslContext.transaction(configuration -> {
+            DSLContext ctx = DSL.using(configuration);
+
+            String hashedUUID = DigestUtils.sha256Hex(uuid.toString());
+
+            Integer userId = accountRepository.consumePasswordResetToken(ctx, hashedUUID);
+            if(userId == null){
+                throw new IllegalArgumentException("Invalid token or expired token");
+            }
+
+            String hashedPwd = passwordEncoder.encode(password);
+            accountRepository.changePassword(ctx, userId, hashedPwd);
+        });
     }
 
     /**

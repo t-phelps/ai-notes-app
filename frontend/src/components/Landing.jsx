@@ -11,7 +11,9 @@ export const Landing = () => {
     const [error, setError] = useState("");
     const [userNotesDataSet, setUserNotesDataSet] = useState(() => new Set());
     const [username, setUsername] = useState("");
+    const max = 2000;
 
+    let charRemaining = max - text.length;
 
     useEffect(() => {
         const fetchUserNotesData = async () => {
@@ -129,16 +131,17 @@ export const Landing = () => {
                     <div className={"main-section"}>
                         <div className={"create-notes"}>
                             <label htmlFor="title">
-                                Title:
+                                Create Your Notes Here:
                             </label>
                             <input
                                 name={"title"}
-                                placeholder="Title"
+                                placeholder=" Title"
                                 onChange={(e) => setTitle(e.target.value)} />
 
                             <textarea
                                 name={"text"}
-                                placeholder="Notes..."
+                                placeholder=" Notes..."
+                                maxLength={max}
                                 onChange={(e) => setText(e.target.value)} />
 
                             {/* ERROR MESSAGE */}
@@ -147,6 +150,13 @@ export const Landing = () => {
                                     {error}
                                 </p>
                             )}
+                            <p>
+                                {/* Display the current count and the total limit */}
+                                {text.length} / {max} characters entered
+                            </p>
+                            <p style={{ color: charRemaining < 0 ? 'red' : 'black' }}>
+                                {charRemaining} characters remaining
+                            </p>
 
                             <button
                                 className="create-note-button"

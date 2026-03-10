@@ -2,10 +2,10 @@ package com.tphelps.backend.controller;
 
 import com.tphelps.backend.dtos.ChangePasswordRequest;
 import com.tphelps.backend.dtos.DeleteAccountRequest;
+import com.tphelps.backend.dtos.PasswordResetRequest;
 import com.tphelps.backend.dtos.responses.PurchaseHistoryResponseDto;
 import com.tphelps.backend.dtos.responses.UserDetailsResponseDto;
 import com.tphelps.backend.service.CustomUserDetailsService;
-import static com.tphelps.backend.controller.authentication.AuthenticationValidator.validateUserAuthentication;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
@@ -55,6 +55,27 @@ public class AccountController {
 
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().build();
+        }
+    }
+
+    /**
+     * Endpoint for resetting a password through the password reset request email
+     * @param passwordResetRequest - dto containing UUID and password
+     * @return - <code> 200 on success </code>
+     */
+    @PostMapping("/reset-password")
+    public ResponseEntity<?> resetPassword(@RequestBody PasswordResetRequest passwordResetRequest) {
+        try{
+
+            if(isInvalidPasswordResetRequest(passwordResetRequest)){
+                return ResponseEntity.badRequest().build();
+            }
+
+            customUserDetailsService.resetPassword(passwordResetRequest.password(), passwordResetRequest.uuid());
+
+            return ResponseEntity.ok().build();
+        }catch(Exception e){
+            return ResponseEntity.internalServerError().build();
         }
     }
 
@@ -113,5 +134,17 @@ public class AccountController {
             return ResponseEntity.ok().body(purchaseHistoryResponseList);
         }
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+    }
+
+    /**
+     * Validate the PasswordResetRequest
+     * @param passwordResetRequest - dto
+     * @return - true if request meets minimum requirements
+     */
+    private boolean isInvalidPasswordResetRequest(PasswordResetRequest passwordResetRequest) {
+        return passwordResetRequest.password() == null
+                || passwordResetRequest.password().isEmpty()
+                || passwordResetRequest.uuid() == null
+                || passwordResetRequest.uuid().toString().isEmpty();
     }
 }
