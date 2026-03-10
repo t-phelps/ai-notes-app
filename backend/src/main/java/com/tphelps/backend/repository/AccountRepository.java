@@ -8,8 +8,9 @@ import org.jooq.DSLContext;
 import org.springframework.stereotype.Repository;
 
 import static test.generated.tables.Users.USERS;
-import test.generated.tables.pojos.Users;
+import static test.generated.tables.PasswordResetTokens.PASSWORD_RESET_TOKENS;
 
+import java.time.OffsetDateTime;
 import java.util.List;
 
 import static test.generated.tables.UserNoteHistory.USER_NOTE_HISTORY;
@@ -37,6 +38,23 @@ public class AccountRepository {
                 .execute();
 
         if (rowsAffected == 0) {
+            throw new IllegalArgumentException("User not found");
+        }
+    }
+
+    /**
+     * Overloaded method for changing the password based off the userId
+     * @param userId - userId to change pwd for
+     * @param hashedPassword - hashed password
+     * @throws IllegalArgumentException - if user not found
+     */
+    public void changePassword(DSLContext ctx, int userId, String hashedPassword) throws IllegalArgumentException {
+        int rowsAffected = ctx.update(USERS)
+                .set(USERS.PASSWORD, hashedPassword)
+                .where(USERS.ID.eq(userId))
+                .execute();
+
+        if(rowsAffected == 0) {
             throw new IllegalArgumentException("User not found");
         }
     }
@@ -110,5 +128,21 @@ public class AccountRepository {
                 .on(USERS.STRIPE_CUSTOMER_ID.eq(SUBSCRIPTIONS.CUSTOMER_ID))
                 .where(USERS.USERNAME.eq(username))
                 .fetchInto(PurchaseHistoryResponseDto.class);
+    }
+
+    /**
+     * Fetch the user id for the password reset request that meets the requirements set
+     * (request must be fulfilled within 1 hour from email sent, same UUID, token valid for 1 time use)
+     * and then set the USED field to TRUE only IF there was a match
+     * @param hashedUUID - hashed UUID to match on
+     */
+    public Integer consumePasswordResetToken(DSLContext ctx, String hashedUUID){
+        return ctx.update(PASSWORD_RESET_TOKENS)
+                .set(PASSWORD_RESET_TOKENS.USED, true)
+                .where(PASSWORD_RESET_TOKENS.HASHED_TOKEN.eq(hashedUUID))
+                .and(PASSWORD_RESET_TOKENS.EXPIRES_AT.greaterThan(OffsetDateTime.now()))
+                .and(PASSWORD_RESET_TOKENS.USED.eq(false))
+                .returning(PASSWORD_RESET_TOKENS.USER_ID)
+                .fetchOne(PASSWORD_RESET_TOKENS.USER_ID);
     }
 }

@@ -31,7 +31,21 @@
     align-items: center;
 }
 
+.create-notes input {
+    border-radius: 8px;
+    border: none;
+    padding: 3px;
+}
+
 .create-notes textarea {
     height: 500px;
     width: 500px;
+    margin-top: 5px;
+    border-radius: 8px;
+    border: none;
+    padding: 5px;
+}
+
+.generate-study-guide-button{
+    margin-top: 5px;
 }
