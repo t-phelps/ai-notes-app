@@ -12,6 +12,8 @@ import static test.generated.tables.Subscriptions.SUBSCRIPTIONS;
 
 import test.generated.tables.pojos.Users;
 
+import java.time.OffsetDateTime;
+
 @Repository
 public class StripePaymentRepository {
 
@@ -43,13 +45,37 @@ public class StripePaymentRepository {
         int rowsAffected = dsl.insertInto(SUBSCRIPTIONS)
                 .set(SUBSCRIPTIONS.CUSTOMER_ID, subscriptionCreationDto.customerId())
                 .set(SUBSCRIPTIONS.SUBSCRIPTION_ID, subscriptionCreationDto.subscriptionId())
-                .set(SUBSCRIPTIONS.STATUS, subscriptionCreationDto.status())
                 .set(SUBSCRIPTIONS.START_DATE, subscriptionCreationDto.startDate())
                 .set(SUBSCRIPTIONS.CREATED, subscriptionCreationDto.created())
                 .set(SUBSCRIPTIONS.CURRENT_PERIOD_START, subscriptionCreationDto.currentPeriodStart())
                 .set(SUBSCRIPTIONS.CURRENT_PERIOD_END, subscriptionCreationDto.currentPeriodEnd())
                 .set(SUBSCRIPTIONS.PRICE_ID, subscriptionCreationDto.priceId())
                 .execute();
+        if(rowsAffected == 0){
+            throw new EmptyResultDataAccessException(1);
+        }
+    }
+
+    public void upsertUserSubscription(SubscriptionCreationDto subscriptionCreationDto){
+        int rowsAffected = dsl.insertInto(SUBSCRIPTIONS)
+                .set(SUBSCRIPTIONS.CUSTOMER_ID, subscriptionCreationDto.customerId())
+                .set(SUBSCRIPTIONS.SUBSCRIPTION_ID, subscriptionCreationDto.subscriptionId())
+                .set(SUBSCRIPTIONS.START_DATE, subscriptionCreationDto.startDate())
+                .set(SUBSCRIPTIONS.CREATED, subscriptionCreationDto.created())
+                .set(SUBSCRIPTIONS.CURRENT_PERIOD_START, subscriptionCreationDto.currentPeriodStart())
+                .set(SUBSCRIPTIONS.CURRENT_PERIOD_END, subscriptionCreationDto.currentPeriodEnd())
+                .set(SUBSCRIPTIONS.PRICE_ID, subscriptionCreationDto.priceId())
+                .set(SUBSCRIPTIONS.LATEST_INVOICE, subscriptionCreationDto.latestInvoice())
+                .onConflict(SUBSCRIPTIONS.LATEST_INVOICE, SUBSCRIPTIONS.CUSTOMER_ID)
+                .doUpdate()
+                .set(SUBSCRIPTIONS.SUBSCRIPTION_ID, subscriptionCreationDto.subscriptionId())
+                .set(SUBSCRIPTIONS.START_DATE, subscriptionCreationDto.startDate())
+                .set(SUBSCRIPTIONS.CREATED, subscriptionCreationDto.created())
+                .set(SUBSCRIPTIONS.CURRENT_PERIOD_START, subscriptionCreationDto.currentPeriodStart())
+                .set(SUBSCRIPTIONS.CURRENT_PERIOD_END, subscriptionCreationDto.currentPeriodEnd())
+                .set(SUBSCRIPTIONS.PRICE_ID, subscriptionCreationDto.priceId())
+                .execute();
+
         if(rowsAffected == 0){
             throw new EmptyResultDataAccessException(1);
         }
@@ -64,6 +90,25 @@ public class StripePaymentRepository {
                 .set(SUBSCRIPTIONS.STATUS, subscriptionUpdateDto.status())
                 .where(SUBSCRIPTIONS.CUSTOMER_ID.eq(subscriptionUpdateDto.customerId()))
                 .and(SUBSCRIPTIONS.SUBSCRIPTION_ID.eq(subscriptionUpdateDto.subscriptionId()))
+                .execute();
+
+        if(rowsAffected == 0){
+            throw new EmptyResultDataAccessException(1);
+        }
+    }
+
+    /**
+     * Set a users Status and Subscription Period End time in the database
+     * @param offsetDateTime - time that subscription expires
+     * @param customerId - the customer_id from stripe
+     * @param subscriptionId - the subscription_id from stripe
+     * @param status - "active" the status from stripe
+     */
+    public void insertInvoicePaid(String customerId, String subscriptionId, String status){
+        int rowsAffected = dsl.update(SUBSCRIPTIONS)
+                .set(SUBSCRIPTIONS.STATUS, status)
+                .where(SUBSCRIPTIONS.CUSTOMER_ID.eq(customerId))
+                .and(SUBSCRIPTIONS.SUBSCRIPTION_ID.eq(subscriptionId))
                 .execute();
 
         if(rowsAffected == 0){

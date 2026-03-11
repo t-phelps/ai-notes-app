@@ -1,11 +1,11 @@
 package com.tphelps.backend.service.payment.enums;
 
 public enum StripeEventEnum {
-    DELETED("customer.subscription.deleted"),
-    TRIAL_WILL_END("customer.subscription.trial_will_end"),
-    CREATED("customer.subscription.created"),
-    UPDATED("customer.subscription.updated"),
-    ENTITLEMENT_SUMMARY_UPDATED("entitlements.active_entitlement_summary.updated");
+    CUSTOMER_SUBSCRIPTION_DELETED("customer.subscription.deleted"),
+    CUSTOMER_SUBSCRIPTION_CREATED("customer.subscription.created"),
+    CUSTOMER_SUBSCRIPTION_UPDATED("customer.subscription.updated"),
+    INVOICE_PAYMENT_SUCCEEDED("invoice.payment_succeeded"),
+    INVOICE_PAYMENT_FAILURE("invoice.payment_failed");
 
     private final String value;
 

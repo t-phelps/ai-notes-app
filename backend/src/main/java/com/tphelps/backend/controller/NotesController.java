@@ -2,6 +2,7 @@ package com.tphelps.backend.controller;
 
 import com.tphelps.backend.controller.pojos.StudyGuide;
 import com.tphelps.backend.dtos.notes.SaveNotesRequest;
+import com.tphelps.backend.service.CustomUserDetailsService;
 import com.tphelps.backend.service.NotesService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -33,7 +34,7 @@ public class NotesController {
     private final NotesService notesService;
 
     @Autowired
-    public NotesController(NotesService notesService) {
+    public NotesController(NotesService notesService, CustomUserDetailsService customUserDetailsService) {
         this.notesService = notesService;
     }
 
@@ -101,13 +102,17 @@ public class NotesController {
      * @return response containing study guide on success
      */
     @PostMapping("/generate-study-guide")
-    public ResponseEntity<StreamingResponseBody> generateStudyGuide(@RequestBody SaveNotesRequest notes) {
+    public ResponseEntity<StreamingResponseBody> generateStudyGuide(
+            @RequestBody SaveNotesRequest notes,
+            @AuthenticationPrincipal UserDetails userDetails) {
 
         if(validateNotes(notes)) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
         }
         try{
-            // TODO finish implementation
+
+//            var val = notesService.validateUsersSubscription(userDetails.getUsername());
+
             StudyGuide studyGuide = notesService.generateStudyGuide(notes.title(), notes.notes());
             StreamingResponseBody stream = outputStream -> {
                 try{

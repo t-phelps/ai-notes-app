@@ -1,12 +1,10 @@
 package com.tphelps.backend.service;
 
 import com.tphelps.backend.repository.EmailRepository;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.scheduling.annotation.Async;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.UUID;
@@ -20,6 +18,7 @@ public class EmailService {
     private final EmailRepository emailRepository;
 
     @Value("${spring.mail.username}") String sender;
+    @Value("${salted.key}") String saltedKey;
 
     public EmailService(JavaMailSender mailSender, EmailRepository emailRepository) {
         this.mailSender = mailSender;
@@ -56,7 +55,7 @@ public class EmailService {
      */
     private String generateAndStoreToken(String email){
         String token = UUID.randomUUID().toString();
-        String hashedToken = sha256Hex(token);
+        String hashedToken = sha256Hex(token + saltedKey);
         emailRepository.storePasswordResetToken(email, hashedToken);
         return token;
     }

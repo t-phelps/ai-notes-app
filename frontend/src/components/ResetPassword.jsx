@@ -47,7 +47,7 @@ export const ResetPassword = () => {
             })
 
             if(!response.ok) {
-                alert("Password reset failed.");
+                setError("Password reset failed");
                 return;
             }
 
