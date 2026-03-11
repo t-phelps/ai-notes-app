@@ -14,6 +14,7 @@ import org.apache.commons.codec.digest.DigestUtils;
 import org.jooq.DSLContext;
 import org.jooq.impl.DSL;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseCookie;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -30,12 +31,9 @@ import test.generated.tables.pojos.Users;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
-
-import static org.apache.commons.codec.digest.DigestUtils.sha256;
 
 @Service
 public class CustomUserDetailsService implements UserDetailsService {
@@ -45,6 +43,9 @@ public class CustomUserDetailsService implements UserDetailsService {
     private final AccountRepository accountRepository;
     private final JwtTokenGenerator jwtTokenGenerator;
     private final DSLContext dslContext;
+
+    @Value("${salted.key}")
+    private String saltedKey;
 
     @Autowired
     public CustomUserDetailsService(AuthenticationRepository authenticationRepository,
@@ -115,7 +116,7 @@ public class CustomUserDetailsService implements UserDetailsService {
         dslContext.transaction(configuration -> {
             DSLContext ctx = DSL.using(configuration);
 
-            String hashedUUID = DigestUtils.sha256Hex(uuid.toString());
+            String hashedUUID = DigestUtils.sha256Hex(uuid.toString() + saltedKey);
 
             Integer userId = accountRepository.consumePasswordResetToken(ctx, hashedUUID);
             if(userId == null){
@@ -189,6 +190,10 @@ public class CustomUserDetailsService implements UserDetailsService {
     public List<PurchaseHistoryResponseDto> getUserPurchaseHistory(String username) {
         return accountRepository.getPurchaseHistory(username);
     }
+
+//    public void loadSubscriptionData(String username){
+//        return accountRepository.getSubscriptionData(String username);
+//    }
 
     /**
      * Verify a users password by principal and password against the db

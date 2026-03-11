@@ -2,8 +2,6 @@ package com.tphelps.backend.service;
 
 import com.openai.client.OpenAIClient;
 import com.openai.client.okhttp.OpenAIOkHttpClient;
-import com.openai.core.JsonSchemaLocalValidation;
-import com.openai.models.ChatModel;
 import com.openai.models.chat.completions.StructuredChatCompletion;
 import com.openai.models.chat.completions.StructuredChatCompletionCreateParams;
 import com.tphelps.backend.controller.pojos.Steps;
@@ -14,7 +12,6 @@ import com.tphelps.backend.repository.NotesRepository;
 import static com.tphelps.backend.service.HttpRequestService.rcloneHttpRequestGetFile;
 import static com.tphelps.backend.service.HttpRequestService.rcloneHttpRequestPost;
 
-import org.jooq.Path;
 import org.jooq.tools.json.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
@@ -32,12 +29,17 @@ public class NotesService {
 
     private final NotesRepository notesRepository;
     private final OpenAIClient client;
+    private final CustomUserDetailsService customUserDetailsService;
     private static final String AI_NOTES_FOLDER = "ai-notes/";
 
     @Autowired
-    public NotesService(NotesRepository notesRepository, OpenAIClient client) {
+    public NotesService(
+            NotesRepository notesRepository,
+            OpenAIClient client,
+            CustomUserDetailsService customUserDetailsService) {
         this.notesRepository = notesRepository;
         this.client = OpenAIOkHttpClient.fromEnv();
+        this.customUserDetailsService = customUserDetailsService;
     }
 
     /**
@@ -93,6 +95,10 @@ public class NotesService {
         return res.get();
 //        return writeStudyGuideToFile(res.get(), title);
     }
+
+//    public void validateUsersSubscription(String username){
+//        customUserDetailsService.loadSubscriptionData(username);
+//    }
 
     /**
      * Write study guide to file with specific formatting

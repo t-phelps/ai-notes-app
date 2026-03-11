@@ -145,37 +145,42 @@ public class StripePaymentController {
 
         // handle event
         Subscription subscription = null;
+        Invoice invoice = null;
         try {
             if (eventType != null) {
                 switch (eventType) {
-                    case DELETED -> {
+                    case CUSTOMER_SUBSCRIPTION_DELETED -> {
                         subscription = (Subscription) stripeObject;
                         // define and call a function to handle event
                         stripePaymentService.handleSubscriptionDeleted(subscription);
                     }
-                    case TRIAL_WILL_END -> {
-                        subscription = (Subscription) stripeObject;
-                        // define and call a function to handle event
-//                        stripePaymentService.handleTrialSubscriptionEnding(subscription);
-                    }
-                    case CREATED -> {
+                    case CUSTOMER_SUBSCRIPTION_CREATED -> {
                         subscription = (Subscription) stripeObject;
                         // define and call a function to handle event
                         stripePaymentService.handleSubscriptionCreated(subscription);
                     }
-                    case UPDATED -> {
+                    case CUSTOMER_SUBSCRIPTION_UPDATED -> {
                         subscription = (Subscription) stripeObject;
                         // define and call a function to handle event
                         stripePaymentService.handleSubscriptionUpdated(subscription);
                     }
-                    case ENTITLEMENT_SUMMARY_UPDATED -> {
-                        subscription = (Subscription) stripeObject;
-                        // define and call a function to handle event
-                        // handleEntitlementUpdated
+                    case INVOICE_PAYMENT_SUCCEEDED -> {
+                        // this is when we give access to the user: ACTIVE and give a current_period_end
+                        invoice =  (Invoice) stripeObject;
+
+                        stripePaymentService.handleInvoicePaid(invoice);
                     }
+                    case INVOICE_PAYMENT_FAILURE -> {
+
+                    }
+//                    case ENTITLEMENT_SUMMARY_UPDATED -> {
+//                        subscription = (Subscription) stripeObject;
+//                        // define and call a function to handle event
+//                        // handleEntitlementUpdated
+//                    }
                 }
-            } else {
-                throw new IllegalArgumentException("Event type unhandled: " + eventType);
+            }else{
+                System.out.println("Unhandled event type: " + event.getType());
             }
         }catch(EmptyResultDataAccessException | IllegalArgumentException e){
             // do something

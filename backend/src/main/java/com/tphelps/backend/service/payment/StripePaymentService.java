@@ -20,6 +20,9 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 
+import java.time.Instant;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.util.Map;
 
 @Service
@@ -28,16 +31,13 @@ public class StripePaymentService {
     private static Gson gson = new Gson();
 
     // value does NOT inject into static fields
-    @Value("${stripe.api.key}")
-    private String STRIPE_API_KEY;
+    // Caching issues and i have no idea why its still caching old test keys
+//    @Value("${stripe.api.key}")
+//    private String STRIPE_API_KEY;
 
     @Value("${front.end.url}")
     private String MY_DOMAIN;
 
-    @PostConstruct
-    public void init() {
-        Stripe.apiKey = STRIPE_API_KEY;
-    }
 
     private final StripePaymentRepository stripePaymentRepository;
     private final AccountRepository accountRepository;
@@ -55,6 +55,12 @@ public class StripePaymentService {
      * @throws StripeException - if any stripe api error occurs
      */
     public Map<String, String> getCreateCheckoutSessionRedirectUrl(String key, String username) throws StripeException {
+        String stripeKey = System.getenv("STRIPE_TEST_KEY");
+        if(stripeKey == null || stripeKey.isEmpty()) {
+            throw new IllegalStateException("Environment variable STRIPE_TEST_KEY is not set");
+        }
+        Stripe.apiKey = stripeKey;
+
         PriceListParams priceListParams = PriceListParams.builder().addLookupKey(key).build();
         PriceCollection prices = Price.list(priceListParams);// requires a product within stripe dashboard to have a lookup_key assigned to the product
         if(prices.getData().isEmpty()) {
@@ -82,7 +88,11 @@ public class StripePaymentService {
      * @throws StripeException - if any stripe api error occurs
      */
     public Map<String, String> getPortalSessionRedirectUrl(String username) throws StripeException {
-
+        String stripeKey = System.getenv("STRIPE_TEST_KEY");
+        if(stripeKey == null || stripeKey.isEmpty()) {
+            throw new IllegalStateException("Environment variable STRIPE_TEST_KEY is not set");
+        }
+        Stripe.apiKey = stripeKey;
         java.lang.String  stripeCustomerId= stripePaymentRepository.getUserStripeCustomerId(username);
 
         com.stripe.param.billingportal.SessionCreateParams params = new com.stripe.param.billingportal.SessionCreateParams.Builder()
@@ -111,12 +121,12 @@ public class StripePaymentService {
         SubscriptionCreationDto subscriptionCreationDto = new SubscriptionCreationDto(
                 subscription.getCustomer(),
                 subscription.getId(),
-                subscription.getStatus(),
-                subscription.getStartDate(),
-                dataList.getCreated(),
-                dataList.getCurrentPeriodStart(),
-                dataList.getCurrentPeriodEnd(),
-                dataList.getPrice().getId());
+                OffsetDateTime.ofInstant(Instant.ofEpochSecond(subscription.getStartDate()), ZoneOffset.UTC),
+                OffsetDateTime.ofInstant(Instant.ofEpochSecond(dataList.getCreated()), ZoneOffset.UTC),
+                OffsetDateTime.ofInstant(Instant.ofEpochSecond(dataList.getCurrentPeriodStart()), ZoneOffset.UTC),
+                OffsetDateTime.ofInstant(Instant.ofEpochSecond(dataList.getCurrentPeriodEnd()), ZoneOffset.UTC),
+                dataList.getPrice().getId(),
+                subscription.getLatestInvoice());
 
         stripePaymentRepository.insertUserSubscription(subscriptionCreationDto);
     }
@@ -131,6 +141,18 @@ public class StripePaymentService {
         updateUserSubscription(subscription);
     }
 
+    /**
+     * Handle an invoice paid webhook from stripe, update their status and end time for subscription in db
+     * @param subscription - subscription object from stripe
+     */
+    public void handleInvoicePaid(Invoice invoice){
+//       InvoiceLineItem dataList = invoice.getLines().getData().get(0);
+        stripePaymentRepository.insertInvoicePaid(
+                invoice.getCustomer(),
+                // get subscription ID or more likely invoice ID here since subscription object provides an invoice_id when received as event
+                invoice.getId(),
+                "ACTIVE");
+    }
     /**
      * Extracted method for updating a user subscription in the db
      * @param subscription - the subscription object from stripe
