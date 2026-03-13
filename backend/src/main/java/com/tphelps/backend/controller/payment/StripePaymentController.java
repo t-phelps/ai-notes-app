@@ -8,6 +8,7 @@ import com.stripe.model.checkout.Session;
 import com.stripe.net.ApiResource;
 import com.stripe.net.Webhook;
 
+import com.stripe.service.tax.CalculationService;
 import com.tphelps.backend.service.payment.StripePaymentService;
 import com.tphelps.backend.service.payment.enums.StripeEventEnum;
 
@@ -171,7 +172,18 @@ public class StripePaymentController {
                         stripePaymentService.handleInvoicePaid(invoice);
                     }
                     case INVOICE_PAYMENT_FAILURE -> {
+                        invoice = (Invoice) stripeObject;
 
+                        stripePaymentService.handleInvoicePaymentFailure(invoice);
+                    }
+                    case REFUND_CREATED -> {
+                        // handle refund created, what type of object will i get here
+                    }
+                    case CHARGE_REFUNDED -> {
+                        // handle charge refunded, what type of object will i get here
+                    }
+                    case  ISSUING_DISPUTE_FUNDS_RESCINDED -> {
+                        // handle funds rescinded, what type of object will i get here
                     }
 //                    case ENTITLEMENT_SUMMARY_UPDATED -> {
 //                        subscription = (Subscription) stripeObject;

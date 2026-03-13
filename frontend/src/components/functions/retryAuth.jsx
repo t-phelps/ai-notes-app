@@ -31,7 +31,7 @@ const retryAuth = async (url, options = {}) => {
         return fetch(url, options);
 
     } catch (err) {
-        console.error("Request failed:", err);
+        console.error("Request failed:", err.message);
         throw err;
     }
 };
