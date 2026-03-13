@@ -44,14 +44,19 @@ public class AccountController {
             // this has the browser delete the cookie when sent back
             // this does NOT invalidate the cookie that is being deleted by the browser
             // it can still be used, would need to implement a blacklist in db
-            ResponseCookie cookie = customUserDetailsService.invalidateUserCookie();
+            ResponseCookie accessToken = customUserDetailsService.invalidateAccessTokenCookie();
+            ResponseCookie refreshToken = customUserDetailsService.invalidateRefreshTokenCookie();
 
             customUserDetailsService.changePassword(
                     userDetails,
                     changePasswordRequest.oldPassword(),
                     changePasswordRequest.newPassword());
 
-            return ResponseEntity.ok().header(HttpHeaders.SET_COOKIE, cookie.toString()).build();
+            HttpHeaders headers = new HttpHeaders();
+            headers.add(HttpHeaders.SET_COOKIE, accessToken.toString());
+            headers.add(HttpHeaders.SET_COOKIE, refreshToken.toString());
+
+            return ResponseEntity.ok().headers(headers).build();
 
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().build();
@@ -96,15 +101,20 @@ public class AccountController {
             // this has the browser delete the cookie when sent back
             // this does NOT invalidate the cookie that is being deleted by the browser
             // it can still be used, would need to implement a blacklist in db
-            ResponseCookie cookie = customUserDetailsService.invalidateUserCookie();
+            ResponseCookie accessToken = customUserDetailsService.invalidateAccessTokenCookie();
+            ResponseCookie refreshToken = customUserDetailsService.invalidateRefreshTokenCookie();
 
             customUserDetailsService.deleteAccount(
                     userDetails,
                     password
             );
 
+            HttpHeaders headers = new HttpHeaders();
+            headers.add(HttpHeaders.SET_COOKIE, accessToken.toString());
+            headers.add(HttpHeaders.SET_COOKIE, refreshToken.toString());
+
             return ResponseEntity.ok()
-                    .header(HttpHeaders.SET_COOKIE, cookie.toString())
+                    .headers(headers)
                     .body("Account deleted successfully");
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().build();

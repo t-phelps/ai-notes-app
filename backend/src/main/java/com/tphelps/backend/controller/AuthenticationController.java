@@ -1,5 +1,7 @@
 package com.tphelps.backend.controller;
 
+import com.tphelps.backend.controller.exceptions.IllegalAccessTokenException;
+import com.tphelps.backend.controller.exceptions.IllegalRefreshTokenException;
 import com.tphelps.backend.service.CustomUserDetailsService;
 import com.tphelps.backend.dtos.CreateAccountRequest;
 import com.tphelps.backend.dtos.LoginRequest;
@@ -48,9 +50,7 @@ public class AuthenticationController {
             ResponseCookie accessToken = customUserDetailsService.generateUserCookie(authentication.getPrincipal());
             ResponseCookie refreshToken = customUserDetailsService.generateRefreshToken(authentication.getPrincipal());
 
-            HttpHeaders headers = new HttpHeaders();
-            headers.add(HttpHeaders.SET_COOKIE, accessToken.toString());
-            headers.add(HttpHeaders.SET_COOKIE, refreshToken.toString());
+            HttpHeaders headers = buildHttpHeaders(accessToken, refreshToken);
 
             return ResponseEntity.ok()
                     .headers(headers)
@@ -61,6 +61,11 @@ public class AuthenticationController {
     }
 
 
+    /**
+     * Endpoint for creating a user account
+     * @param request - request dto containing email, username, password
+     * @return
+     */
     @PostMapping("/create")
     public ResponseEntity<?> createAccount(@RequestBody CreateAccountRequest request){
         if(request.email().isEmpty() || request.username().isEmpty() || request.password().isEmpty()) {
@@ -73,12 +78,7 @@ public class AuthenticationController {
                 return ResponseEntity.internalServerError().body("Failed To Generate Cookies While Creating Account");
             }
 
-            ResponseCookie accessToken = responseCookieList.get().get(0);
-            ResponseCookie refreshToken = responseCookieList.get().get(1);
-
-            HttpHeaders headers = new HttpHeaders();
-            headers.add(HttpHeaders.SET_COOKIE, accessToken.toString());
-            headers.add(HttpHeaders.SET_COOKIE, refreshToken.toString());
+            HttpHeaders headers = buildHttpHeaders(responseCookieList.get().get(0), responseCookieList.get().get(1));
 
             return ResponseEntity.ok()
                     .headers(headers)
@@ -88,21 +88,60 @@ public class AuthenticationController {
         }
     }
 
+    /**
+     * Logout user, set cookies to expired
+     * @return
+     */
+    @PostMapping("/logout")
+    public ResponseEntity<?> logout() {
+        ResponseCookie accessToken = customUserDetailsService.invalidateAccessTokenCookie();
+        ResponseCookie refreshToken = customUserDetailsService.invalidateRefreshTokenCookie();
+
+        HttpHeaders headers = buildHttpHeaders(accessToken, refreshToken);
+
+        return ResponseEntity.ok()
+                .headers(headers)
+                .body("User cookies invalidated");
+    }
+
+    /**
+     * Refresh endpoint for refreshing refresh_token with a long-lived token
+     * @param refreshToken - long-lived cookie to refresh access_token
+     * @return - a new access_token if refresh_cookie hasn't expired
+     */
     @PostMapping("/refresh")
     public ResponseEntity<?> refresh(@CookieValue(name = "refresh_token") String refreshToken){
-
-        if(refreshToken.isEmpty()){
-            return ResponseEntity.badRequest().body("Refresh ");
-        }
-
         try{
+            validateRefreshToken(refreshToken);
             ResponseCookie accessToken = customUserDetailsService.refreshAccessToken(refreshToken);
 
             return ResponseEntity.ok()
                     .header(HttpHeaders.SET_COOKIE, accessToken.toString())
                     .body("Token Refreshed");
-        }catch(Exception e){
+        }catch(IllegalRefreshTokenException e){
+            return ResponseEntity.badRequest().body("Invalid Refresh Token");
+        }
+        catch(Exception e){
             return ResponseEntity.internalServerError().body("Failed To Refresh Access Token");
+        }
+    }
+
+    private HttpHeaders buildHttpHeaders(ResponseCookie access_token, ResponseCookie refresh_token){
+        HttpHeaders headers = new HttpHeaders();
+        headers.add(HttpHeaders.SET_COOKIE, access_token.toString());
+        headers.add(HttpHeaders.SET_COOKIE, refresh_token.toString());
+        return headers;
+    }
+
+    private void validateRefreshToken(String refreshToken) throws IllegalRefreshTokenException {
+        if(refreshToken == null || refreshToken.isEmpty()){
+            throw new IllegalRefreshTokenException("Invalid Refresh Token");
+        }
+    }
+
+    private void validateAccessToken(String accessToken) throws IllegalAccessTokenException {
+        if(accessToken == null || accessToken.isEmpty()){
+            throw new IllegalAccessTokenException("Invalid Access Token");
         }
     }
 }

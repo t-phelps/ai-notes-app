@@ -12,8 +12,6 @@ import static test.generated.tables.Subscriptions.SUBSCRIPTIONS;
 
 import test.generated.tables.pojos.Users;
 
-import java.time.OffsetDateTime;
-
 @Repository
 public class StripePaymentRepository {
 
@@ -37,25 +35,11 @@ public class StripePaymentRepository {
     }
 
     /**
-     * Insert subscription info into the database for a user
-     * @param subscriptionCreationDto - dto containing pertinent information about the user
-     *                            including the FK for the stripe customer id from USERS table
+     * Upsert for handling async events, utilizes onConflict() for the unique column latest invoice
+     * to detect if the invoice_payment.aid event has come through before customer.subscription.created
+     * and deals with the data accordingly
+     * @param subscriptionCreationDto - dto containing necessary info for a subscription created insert
      */
-    public void insertUserSubscription(SubscriptionCreationDto subscriptionCreationDto){
-        int rowsAffected = dsl.insertInto(SUBSCRIPTIONS)
-                .set(SUBSCRIPTIONS.CUSTOMER_ID, subscriptionCreationDto.customerId())
-                .set(SUBSCRIPTIONS.SUBSCRIPTION_ID, subscriptionCreationDto.subscriptionId())
-                .set(SUBSCRIPTIONS.START_DATE, subscriptionCreationDto.startDate())
-                .set(SUBSCRIPTIONS.CREATED, subscriptionCreationDto.created())
-                .set(SUBSCRIPTIONS.CURRENT_PERIOD_START, subscriptionCreationDto.currentPeriodStart())
-                .set(SUBSCRIPTIONS.CURRENT_PERIOD_END, subscriptionCreationDto.currentPeriodEnd())
-                .set(SUBSCRIPTIONS.PRICE_ID, subscriptionCreationDto.priceId())
-                .execute();
-        if(rowsAffected == 0){
-            throw new EmptyResultDataAccessException(1);
-        }
-    }
-
     public void upsertUserSubscription(SubscriptionCreationDto subscriptionCreationDto){
         int rowsAffected = dsl.insertInto(SUBSCRIPTIONS)
                 .set(SUBSCRIPTIONS.CUSTOMER_ID, subscriptionCreationDto.customerId())
@@ -66,7 +50,7 @@ public class StripePaymentRepository {
                 .set(SUBSCRIPTIONS.CURRENT_PERIOD_END, subscriptionCreationDto.currentPeriodEnd())
                 .set(SUBSCRIPTIONS.PRICE_ID, subscriptionCreationDto.priceId())
                 .set(SUBSCRIPTIONS.LATEST_INVOICE, subscriptionCreationDto.latestInvoice())
-                .onConflict(SUBSCRIPTIONS.LATEST_INVOICE, SUBSCRIPTIONS.CUSTOMER_ID)
+                .onConflict(SUBSCRIPTIONS.LATEST_INVOICE)
                 .doUpdate()
                 .set(SUBSCRIPTIONS.SUBSCRIPTION_ID, subscriptionCreationDto.subscriptionId())
                 .set(SUBSCRIPTIONS.START_DATE, subscriptionCreationDto.startDate())
@@ -98,17 +82,19 @@ public class StripePaymentRepository {
     }
 
     /**
-     * Set a users Status and Subscription Period End time in the database
-     * @param offsetDateTime - time that subscription expires
+     * Upsert users status based on event received from stripe (either payment success or failure)
      * @param customerId - the customer_id from stripe
-     * @param subscriptionId - the subscription_id from stripe
+     * @param invoiceId - invoiceId from stripe invoice obj
      * @param status - "active" the status from stripe
      */
-    public void insertInvoicePaid(String customerId, String subscriptionId, String status){
-        int rowsAffected = dsl.update(SUBSCRIPTIONS)
+    public void upsertInvoiceEvent(String customerId, String invoiceId, String status){
+        int rowsAffected = dsl.insertInto(SUBSCRIPTIONS)
                 .set(SUBSCRIPTIONS.STATUS, status)
-                .where(SUBSCRIPTIONS.CUSTOMER_ID.eq(customerId))
-                .and(SUBSCRIPTIONS.SUBSCRIPTION_ID.eq(subscriptionId))
+                .set(SUBSCRIPTIONS.CUSTOMER_ID, customerId)
+                .set(SUBSCRIPTIONS.LATEST_INVOICE, invoiceId)
+                .onConflict(SUBSCRIPTIONS.LATEST_INVOICE)
+                .doUpdate()
+                .set(SUBSCRIPTIONS.STATUS, status)
                 .execute();
 
         if(rowsAffected == 0){

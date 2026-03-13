@@ -11,13 +11,10 @@ import com.tphelps.backend.dtos.payment.SubscriptionCreationDto;
 import com.tphelps.backend.dtos.payment.SubscriptionUpdateDto;
 import com.tphelps.backend.repository.AccountRepository;
 import com.tphelps.backend.repository.payment.StripePaymentRepository;
-import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.ListableBeanFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.converter.StringHttpMessageConverter;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
@@ -128,7 +125,7 @@ public class StripePaymentService {
                 dataList.getPrice().getId(),
                 subscription.getLatestInvoice());
 
-        stripePaymentRepository.insertUserSubscription(subscriptionCreationDto);
+        stripePaymentRepository.upsertUserSubscription(subscriptionCreationDto);
     }
 
 
@@ -143,16 +140,27 @@ public class StripePaymentService {
 
     /**
      * Handle an invoice paid webhook from stripe, update their status and end time for subscription in db
-     * @param subscription - subscription object from stripe
+     * @param invoice - invoice obj
      */
     public void handleInvoicePaid(Invoice invoice){
-//       InvoiceLineItem dataList = invoice.getLines().getData().get(0);
-        stripePaymentRepository.insertInvoicePaid(
+        stripePaymentRepository.upsertInvoiceEvent(
                 invoice.getCustomer(),
                 // get subscription ID or more likely invoice ID here since subscription object provides an invoice_id when received as event
                 invoice.getId(),
                 "ACTIVE");
     }
+
+    /**
+     * Handle an invoice.payment_failed event from stripe, update their status in db
+     * @param invoice - invoice obj.
+     */
+    public void handleInvoicePaymentFailure(Invoice invoice){
+        stripePaymentRepository.upsertInvoiceEvent(
+                invoice.getCustomer(),
+                invoice.getId(),
+                "INACTIVE");
+    }
+
     /**
      * Extracted method for updating a user subscription in the db
      * @param subscription - the subscription object from stripe

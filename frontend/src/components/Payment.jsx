@@ -1,5 +1,6 @@
 import "../styles/PaymentStyle.css";
 import {NavBar} from "./NavBar";
+import retryAuth from "./functions/retryAuth";
 
 export const Payment = () => {
 
@@ -18,7 +19,7 @@ export const Payment = () => {
      */
     const handleCreateSession = async () => {
         try {
-            const response = await fetch(`http://localhost:8080/stripe/create-checkout-session?lookup_key=${paymentKeysMap.get("test")}`, {
+            const options = {
                 method: "POST",
                 body: JSON.stringify({
                     lookup_key: "test_key_1",
@@ -27,7 +28,13 @@ export const Payment = () => {
                     "Content-Type": "application/json",
                 },
                 credentials: "include",
-            });
+            };
+
+
+            const response = await retryAuth(
+                `http://localhost:8080/stripe/create-checkout-session?lookup_key=${paymentKeysMap.get("test")}`,
+                options);
+
 
             const data = await response.json();
 

@@ -269,11 +269,23 @@ public class CustomUserDetailsService implements UserDetailsService {
     }
 
     /**
-     * Send an expired token to the front end on logout
+     * Generate an expired access_token
      * @return - a ResponseCookie that's expired
      */
-    public ResponseCookie invalidateUserCookie() {
-       return ResponseCookie.from("jwt", "")
+    public ResponseCookie invalidateAccessTokenCookie() {
+       return ResponseCookie.from("access_token", "")
+                .maxAge(0)
+                .httpOnly(true)
+                .path("/")
+                .build();
+    }
+
+    /**
+     * Generate an expired refresh_token
+     * @return - a ResponseCookie that's expired
+     */
+    public ResponseCookie invalidateRefreshTokenCookie() {
+        return ResponseCookie.from("refresh_token", "")
                 .maxAge(0)
                 .httpOnly(true)
                 .path("/")
