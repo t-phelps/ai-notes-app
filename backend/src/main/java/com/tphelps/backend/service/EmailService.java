@@ -1,6 +1,8 @@
 package com.tphelps.backend.service;
 
 import com.tphelps.backend.repository.EmailRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
@@ -16,6 +18,8 @@ public class EmailService {
 
     private final JavaMailSender mailSender;
     private final EmailRepository emailRepository;
+
+    private static final Logger logger = LoggerFactory.getLogger(EmailService.class);
 
     @Value("${spring.mail.username}") String sender;
     @Value("${salted.key}") String saltedKey;
@@ -42,9 +46,9 @@ public class EmailService {
             message.setSubject("Password Reset Link");
             message.setText(formattedEmailText);
             mailSender.send(message);
-
+            logger.trace("Email sent for password reset request with trace UUID={} for email={}", token, email);
         }catch(Exception e){
-            System.out.println("Failed to send email for password reset to " + email);
+            logger.error("Failed to send email for password reset to email={}",email);
         }
     }
 

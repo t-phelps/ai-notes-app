@@ -7,6 +7,8 @@ import com.tphelps.backend.dtos.responses.PurchaseHistoryResponseDto;
 import com.tphelps.backend.dtos.responses.UserDetailsResponseDto;
 import com.tphelps.backend.service.CustomUserDetailsService;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -14,13 +16,17 @@ import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.Instant;
 import java.util.List;
 
 @RestController
 @RequestMapping("/account")
 public class AccountController {
+
+    private static final Logger logger = LoggerFactory.getLogger(AccountController.class);
 
     private final CustomUserDetailsService customUserDetailsService;
 
@@ -40,7 +46,8 @@ public class AccountController {
             @RequestBody ChangePasswordRequest changePasswordRequest,
             @AuthenticationPrincipal UserDetails userDetails) {
         try {
-
+            logger.trace("Changing password for user={} at UTC time={}",
+                    userDetails.getUsername(), Instant.now());
             // this has the browser delete the cookie when sent back
             // this does NOT invalidate the cookie that is being deleted by the browser
             // it can still be used, would need to implement a blacklist in db
@@ -58,7 +65,8 @@ public class AccountController {
 
             return ResponseEntity.ok().headers(headers).build();
 
-        } catch (IllegalArgumentException e) {
+        } catch (IllegalArgumentException | UsernameNotFoundException e) {
+            logger.error("Password change failed for user={}", userDetails.getUsername());
             return ResponseEntity.badRequest().build();
         }
     }
@@ -75,11 +83,13 @@ public class AccountController {
             if(isInvalidPasswordResetRequest(passwordResetRequest)){
                 return ResponseEntity.badRequest().build();
             }
-
+            logger.trace("Password reset request for user with trace UUID={} at UTC time={}",
+                    passwordResetRequest.uuid(), Instant.now());
             customUserDetailsService.resetPassword(passwordResetRequest.password(), passwordResetRequest.uuid());
 
             return ResponseEntity.ok().build();
         }catch(Exception e){
+            logger.error("Failed password reset request for user with trace UUID={}", passwordResetRequest.uuid());
             return ResponseEntity.internalServerError().build();
         }
     }
@@ -95,6 +105,8 @@ public class AccountController {
             @RequestBody DeleteAccountRequest deleteAccountRequest,
             @AuthenticationPrincipal UserDetails userDetails) {
         try {
+            logger.trace("Account deletion request initiated for user={} at UTC time={}",
+                    userDetails.getUsername(), Instant.now());
 
             String password = deleteAccountRequest.password();
 
@@ -117,6 +129,8 @@ public class AccountController {
                     .headers(headers)
                     .body("Account deleted successfully");
         } catch (IllegalArgumentException e) {
+            logger.error("Account deletion failed for user={} with exception message={}",
+                    userDetails.getUsername(), e.getMessage());
             return ResponseEntity.badRequest().build();
         }
     }

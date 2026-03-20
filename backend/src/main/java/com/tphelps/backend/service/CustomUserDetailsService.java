@@ -2,6 +2,7 @@ package com.tphelps.backend.service;
 
 import com.stripe.model.Customer;
 import com.stripe.param.CustomerCreateParams;
+import com.tphelps.backend.controller.exceptions.IllegalRefreshTokenException;
 import com.tphelps.backend.dtos.MyUserDetails;
 import com.tphelps.backend.dtos.responses.PurchaseHistoryResponseDto;
 import com.tphelps.backend.dtos.responses.UserDetailsResponseDto;
@@ -89,7 +90,7 @@ public class CustomUserDetailsService implements UserDetailsService {
      * @param oldPassword - users old password
      * @param newPassword - users new password
      */
-    public void changePassword(UserDetails principal, String oldPassword, String newPassword) {
+    public void changePassword(UserDetails principal, String oldPassword, String newPassword) throws UsernameNotFoundException {
 
         String username = verifyPassword(principal, oldPassword);
         String encodedPassword =  passwordEncoder.encode(newPassword);
@@ -191,9 +192,9 @@ public class CustomUserDetailsService implements UserDetailsService {
         return accountRepository.getPurchaseHistory(username);
     }
 
-//    public void loadSubscriptionData(String username){
-//        return accountRepository.getSubscriptionData(String username);
-//    }
+    public String loadSubscriptionData(String username){
+        return accountRepository.getSubscriptionStatus(username);
+    }
 
     /**
      * Verify a users password by principal and password against the db
@@ -237,7 +238,10 @@ public class CustomUserDetailsService implements UserDetailsService {
      * @param refreshToken - the long-lived token
      * @return - a response cookie containing the
      */
-    public ResponseCookie refreshAccessToken(String refreshToken){
+    public ResponseCookie refreshAccessToken(String refreshToken) throws IllegalRefreshTokenException{
+        if(!jwtTokenGenerator.validateJwt(refreshToken)){
+            throw new IllegalRefreshTokenException("Invalid refresh token");
+        }
         String username = jwtTokenGenerator.getUsernameFromJwt(refreshToken);
         String access_token = jwtTokenGenerator.getJwt(username);
 
@@ -245,6 +249,24 @@ public class CustomUserDetailsService implements UserDetailsService {
                 .httpOnly(true)
                 .path("/")
                 .maxAge(Duration.ofMinutes(15))
+                .sameSite("Lax")
+                .secure(false)
+                .build();
+    }
+
+    /**
+     * Refresh the current refresh token
+     * @param refreshToken
+     * @return
+     */
+    public ResponseCookie refreshRefreshToken(String refreshToken){
+        String username = jwtTokenGenerator.getUsernameFromJwt(refreshToken);
+        String refresh_token = jwtTokenGenerator.getRefreshToken(username);
+
+        return ResponseCookie.from("refresh_token", refresh_token)
+                .httpOnly(true)
+                .path("/")
+                .maxAge(Duration.ofDays(7))
                 .sameSite("Lax")
                 .secure(false)
                 .build();
