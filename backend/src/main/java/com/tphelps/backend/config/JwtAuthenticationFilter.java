@@ -7,6 +7,8 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -17,6 +19,7 @@ import org.springframework.security.web.context.RequestAttributeSecurityContextR
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.util.StringJoiner;
 
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
@@ -28,6 +31,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     @Autowired
     private RequestAttributeSecurityContextRepository requestAttributeSecurityContextRepository;
+
+    private static final Logger logger =  LoggerFactory.getLogger(JwtAuthenticationFilter.class);
 
     /**
      * Before we get to controller, needs to check if there is a token in the header
@@ -60,7 +65,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             }
         }catch(Exception e){
             SecurityContextHolder.clearContext();
-            System.out.println("JWT filter error: " + e.getMessage());
+            logger.error("JWT filter error with message={}", e.getMessage());
         }
         filterChain.doFilter(request, response);
     }
@@ -76,7 +81,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         if (bearer != null && bearer.startsWith("Bearer ")) {
             return bearer.substring(7);
         }
-
         // fall back to cookie
         if (request.getCookies() != null) {
             for (Cookie cookie : request.getCookies()) {

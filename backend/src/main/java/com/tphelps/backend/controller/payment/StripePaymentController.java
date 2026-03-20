@@ -8,10 +8,11 @@ import com.stripe.model.checkout.Session;
 import com.stripe.net.ApiResource;
 import com.stripe.net.Webhook;
 
-import com.stripe.service.tax.CalculationService;
 import com.tphelps.backend.service.payment.StripePaymentService;
 import com.tphelps.backend.service.payment.enums.StripeEventEnum;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.EmptyResultDataAccessException;
@@ -28,6 +29,7 @@ import java.util.Map;
 @RequestMapping("/stripe")
 public class StripePaymentController {
 
+    private static final Logger logger =  LoggerFactory.getLogger(StripePaymentController.class);
     StripePaymentService stripePaymentService;
 
     @Autowired
@@ -51,11 +53,15 @@ public class StripePaymentController {
             if (key == null || key.isEmpty()) {
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
             }
+            logger.info("Generating a checkout session in stripe for user={} with lookup_key={}",
+                    userDetails.getUsername(), key);
+
             Map<String, String> urlMap = stripePaymentService
                     .getCreateCheckoutSessionRedirectUrl(key, userDetails.getUsername());
 
             return ResponseEntity.ok(urlMap);
         } catch (StripeException e) {
+            logger.error("Error occurred while generating a stripe checkout session for user={}", userDetails.getUsername());
             Map<String, String> errorMap = Map.of("error", e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorMap);
         }
@@ -68,9 +74,12 @@ public class StripePaymentController {
     @PostMapping("/create-portal-session")
     public ResponseEntity<?> createPortalSession(@AuthenticationPrincipal UserDetails userDetails){
         try{
+            logger.info("Initiating a stripe customer portal session for user={}", userDetails.getUsername());
             Map<String, String> urlMap = stripePaymentService.getPortalSessionRedirectUrl(userDetails.getUsername());
             return ResponseEntity.ok(urlMap);
         }catch(Exception e){
+            logger.error("Error occurred while generating a stripe customer portal session for user={} with exception={}",
+                    userDetails.getUsername(), e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("error", e.getMessage()));
         }
     }
@@ -110,10 +119,10 @@ public class StripePaymentController {
             }
             event = ApiResource.GSON.fromJson(payload, Event.class);
         }catch(JsonSyntaxException e){
-            System.out.println("Webhook error while parsing basic request");
+            logger.error("Webhook error while parsing basic request json with exception message={}", e.getMessage());
             return ResponseEntity.badRequest().build();
         }catch(IllegalArgumentException e){
-            System.out.println("Payload is null or empty");
+            logger.error("Stripe Webhook Payload is null or empty with exception message={}", e.getMessage());
             return ResponseEntity.badRequest().build();
         }
 
@@ -121,11 +130,16 @@ public class StripePaymentController {
             try{
                 event = Webhook.constructEvent(payload, sigHeader, ENDPOINT_SECRET);
             }catch(com.stripe.exception.SignatureVerificationException e){
-                System.out.println("Webhook error while validating signature");
+                logger.error("Webhook error while validating signature");
                 return ResponseEntity.badRequest().build();
             }
         }else{
             return ResponseEntity.badRequest().build();
+        }
+
+        // idempotency
+        if(stripePaymentService.hasProcessedEvent(event.getId())){
+            return ResponseEntity.ok().build();
         }
 
         EventDataObjectDeserializer dataObjectDeserializer = event.getDataObjectDeserializer();
@@ -149,6 +163,7 @@ public class StripePaymentController {
         Invoice invoice = null;
         try {
             if (eventType != null) {
+                logger.info("Received event type={} with ID={}", eventType, event.getId());
                 switch (eventType) {
                     case CUSTOMER_SUBSCRIPTION_DELETED -> {
                         subscription = (Subscription) stripeObject;
@@ -192,13 +207,15 @@ public class StripePaymentController {
 //                    }
                 }
             }else{
-                System.out.println("Unhandled event type: " + event.getType());
+                logger.info("Unhandled event type={} ", event.getType());
             }
         }catch(EmptyResultDataAccessException | IllegalArgumentException e){
             // do something
+            logger.error("Error occurred during stripe webhook processing with exception message={}",
+                    e.getMessage());
             return ResponseEntity.internalServerError().build();
         }
-
+        stripePaymentService.insertSuccessfulEventId(event, payload);
         return ResponseEntity.ok().build();
     }
 }

@@ -1,5 +1,6 @@
 package com.tphelps.backend.service;
 
+import org.apache.commons.logging.impl.Log4JLogger;
 import org.apache.http.HttpEntity;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpPost;
@@ -9,6 +10,8 @@ import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.util.EntityUtils;
 import org.jooq.tools.json.JSONObject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -28,6 +31,8 @@ public class HttpRequestService {
     @Value("rclone.password")
     private static String PASSWORD;
 
+    private static final Logger logger = LoggerFactory.getLogger(HttpRequestService.class);
+
     /**
      * Service method for sending an rclone http request to local remote running on machine.
      * Executes a
@@ -35,16 +40,19 @@ public class HttpRequestService {
      * @param notes
      * @return
      */
-    public static JSONObject rcloneHttpRequestPost(String title, String notes, String username){
+    public static JSONObject rcloneHttpRequestPost(String title, String notes, String username) throws IOException{
         try {
+            logger.trace("Creating temporary file with title={} for user={}", title, username);
             // create a temp file with notes written to file
             String pathToTempFile = createFileWithNotes(title, notes);
 
             // pass a new file object to get the file to the tempFile
             JSONObject jsonObject = createJsonObjectForPost(new File(pathToTempFile), username);
 
+            logger.trace("Initiating rclone post request for user={}", username);
             buildHttpPostRequest(jsonObject);
 
+            logger.trace("Deleting temporary file with path={}", pathToTempFile);
             Files.deleteIfExists(Path.of(pathToTempFile));
 
             JSONObject object = new JSONObject();
@@ -53,6 +61,8 @@ public class HttpRequestService {
 
             return object;
         }catch(IOException | URISyntaxException e){
+            logger.atError().log("Exception caught while making rclone request for saving notes, ex={}, user={}",
+                    e.getMessage(), username);
             throw new IllegalStateException(e);
         }
     }
@@ -62,7 +72,7 @@ public class HttpRequestService {
      * @param path - the path in the remote to the file
      * @return - a path to the temp file created
      */
-    public static String rcloneHttpRequestGetFile(String path){
+    public static String rcloneHttpRequestGetFile(String path, String username){
         try {
             String tempDir = System.getProperty("java.io.tmpdir");
             String fileName = path.substring(path.lastIndexOf("/") + 1);
@@ -70,6 +80,7 @@ public class HttpRequestService {
 
             JSONObject object = createJsonObjectForFetch(path, fileName);
 
+            logger.trace("Initiating rclone get request for user={}", username);
             buildHttpPostRequest(object);
 
             File f = new File(tempDir + "/" + fileName);
@@ -80,16 +91,10 @@ public class HttpRequestService {
             return fullPath;
 
         }catch(URISyntaxException | IOException e){
+            logger.error("Exception caught fetching file from path={} for user={} with message={}",
+                    path, username, e.getMessage());
             throw new IllegalStateException(e);
         }
-    }
-
-    /**
-     *
-     * @param notes
-     */
-    public static void openAiRequest(String notes){
-
     }
 
     /**
@@ -99,6 +104,7 @@ public class HttpRequestService {
      * @throws IOException
      */
     private static void buildHttpPostRequest(JSONObject jsonObject) throws URISyntaxException, IOException {
+
         HttpPost post = new HttpPost("http://127.0.0.1:5572/operations/copyfile");
         post.setHeader("Content-Type", "application/json; charset=UTF-8");
 
@@ -108,7 +114,7 @@ public class HttpRequestService {
         post.setEntity(entity);
 
         String response = executePostRequest(post);
-        System.out.println("Rclone response: " + response);
+        logger.trace("Rclone response={}", response);
     }
 
     /**
@@ -119,6 +125,7 @@ public class HttpRequestService {
      * @throws IOException
      */
     private static String createFileWithNotes(String title, String notes) throws IOException {
+
         File tempFile = new File(System.getProperty("java.io.tmpdir"), title + ".txt");
         Files.writeString(tempFile.toPath(), notes);
 
@@ -132,6 +139,7 @@ public class HttpRequestService {
      * @throws IOException
      */
     private static JSONObject createJsonObjectForPost(File tempFile, String username) throws IOException {
+        logger.trace("Creating JSON object for rclone post request for user={}", username);
 
         JSONObject jsonObject = new JSONObject();
         jsonObject.put("srcFs", tempFile.getParent());
@@ -150,7 +158,6 @@ public class HttpRequestService {
      * @throws IOException
      */
     private static JSONObject createJsonObjectForFetch(String path, String fileName) throws IOException {
-
         JSONObject jsonObject = new JSONObject();
         jsonObject.put("srcFs", "gdrive:");
         jsonObject.put("srcRemote", path);

@@ -9,6 +9,7 @@ import com.stripe.param.PriceListParams;
 import com.stripe.param.checkout.SessionCreateParams;
 import com.tphelps.backend.dtos.payment.SubscriptionCreationDto;
 import com.tphelps.backend.dtos.payment.SubscriptionUpdateDto;
+import com.tphelps.backend.enums.SubscriptionStatus;
 import com.tphelps.backend.repository.AccountRepository;
 import com.tphelps.backend.repository.payment.StripePaymentRepository;
 import org.springframework.beans.factory.ListableBeanFactory;
@@ -22,6 +23,8 @@ import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.Map;
 
+import static com.tphelps.backend.enums.SubscriptionStatus.*;
+
 @Service
 public class StripePaymentService {
 
@@ -33,7 +36,7 @@ public class StripePaymentService {
 //    private String STRIPE_API_KEY;
 
     @Value("${front.end.url}")
-    private String MY_DOMAIN;
+    private String FRONTEND_URL;
 
 
     private final StripePaymentRepository stripePaymentRepository;
@@ -45,10 +48,29 @@ public class StripePaymentService {
         this.accountRepository = accountRepository;
     }
 
+
+    /**
+     * Check if the stripe event has been processed already
+     * @param eventId - event id to check
+     * @return - true if processed
+     */
+    public boolean hasProcessedEvent(String eventId){
+        return (stripePaymentRepository.isEventProcessed(eventId));
+    }
+
+    /**
+     * Insert a successful stripe event from webhook
+     * @param event - event object
+     * @param payload - the raw payload from stripe
+     */
+    public void insertSuccessfulEventId(Event event, String payload){
+        stripePaymentRepository.processEvent(event, payload);
+    }
+
     /**
      * Service method for constructing a url redirect for a stripe checkout session
      * @param key - the key for the object the user is buying
-     * @return a map containing the redirect url
+     * @return a map containing the redirect urlDataRes
      * @throws StripeException - if any stripe api error occurs
      */
     public Map<String, String> getCreateCheckoutSessionRedirectUrl(String key, String username) throws StripeException {
@@ -72,7 +94,7 @@ public class StripePaymentService {
                         SessionCreateParams.LineItem.builder().setPrice(prices.getData().get(0).getId()).setQuantity(1L).build())
                 .setMode(SessionCreateParams.Mode.SUBSCRIPTION)
                 .setCustomer(stripeCustomerId) // pass in the customer id generated when user created account
-                .setSuccessUrl(MY_DOMAIN + "/landing")
+                .setSuccessUrl(FRONTEND_URL + "/landing")
                 .build();
         Session session = Session.create(sessionCreateParams);
         return Map.of("url", session.getUrl());
@@ -94,7 +116,7 @@ public class StripePaymentService {
 
         com.stripe.param.billingportal.SessionCreateParams params = new com.stripe.param.billingportal.SessionCreateParams.Builder()
                 .setCustomer(stripeCustomerId) // stripe customer id from the db to not create a new customer ID on checkout
-                .setReturnUrl(MY_DOMAIN + "/landing").build();
+                .setReturnUrl(FRONTEND_URL + "/landing").build();
 
         com.stripe.model.billingportal.Session portalSession = com.stripe.model.billingportal.Session.create(params);
         return Map.of("url", portalSession.getUrl());
@@ -147,7 +169,7 @@ public class StripePaymentService {
                 invoice.getCustomer(),
                 // get subscription ID or more likely invoice ID here since subscription object provides an invoice_id when received as event
                 invoice.getId(),
-                "ACTIVE");
+                ACTIVE.getValue());
     }
 
     /**
@@ -158,7 +180,7 @@ public class StripePaymentService {
         stripePaymentRepository.upsertInvoiceEvent(
                 invoice.getCustomer(),
                 invoice.getId(),
-                "INACTIVE");
+                SubscriptionStatus.INACTIVE.getValue());
     }
 
     /**
@@ -180,6 +202,14 @@ public class StripePaymentService {
         return new SubscriptionUpdateDto(
                 subscription.getCustomer(),
                 subscription.getId(),
-                subscription.getStatus());
+                setUserStatus(subscription.getStatus()));
+    }
+
+
+    private String setUserStatus(String status){
+        boolean isActive = SubscriptionStatus.ACTIVE.getValue()
+                .equals(status);
+
+        return isActive ? ACTIVE.getValue() : INACTIVE.getValue();
     }
 }

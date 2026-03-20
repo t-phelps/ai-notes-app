@@ -8,11 +8,14 @@ import com.tphelps.backend.controller.pojos.Steps;
 import com.tphelps.backend.controller.pojos.StudyGuide;
 import com.tphelps.backend.dtos.notes.SaveNotesRequest;
 import com.tphelps.backend.repository.NotesRepository;
-
+import com.tphelps.backend.service.exceptions.UnauthorizedUserException;
 import static com.tphelps.backend.service.HttpRequestService.rcloneHttpRequestGetFile;
 import static com.tphelps.backend.service.HttpRequestService.rcloneHttpRequestPost;
 
+
 import org.jooq.tools.json.JSONObject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.stereotype.Service;
@@ -23,7 +26,6 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Optional;
 
-
 @Service
 public class NotesService {
 
@@ -31,11 +33,11 @@ public class NotesService {
     private final OpenAIClient client;
     private final CustomUserDetailsService customUserDetailsService;
     private static final String AI_NOTES_FOLDER = "ai-notes/";
+    private static final Logger logger = LoggerFactory.getLogger(NotesService.class);
 
     @Autowired
     public NotesService(
             NotesRepository notesRepository,
-            OpenAIClient client,
             CustomUserDetailsService customUserDetailsService) {
         this.notesRepository = notesRepository;
         this.client = OpenAIOkHttpClient.fromEnv();
@@ -50,10 +52,11 @@ public class NotesService {
      * @throws EmptyResultDataAccessException
      */
     public void saveNotesToCloud(SaveNotesRequest notesRequest, String username)
-            throws IllegalStateException, EmptyResultDataAccessException {
+            throws IllegalStateException, EmptyResultDataAccessException, IOException {
 
         String title = notesRequest.title().replace(" ", "_");
-        // TODO multi-thread this to do multiple things
+        // TODO multi-thread this to do multiple things ?? possible ?
+
         JSONObject pathObject = rcloneHttpRequestPost(title, notesRequest.notes(), username);
         String drive = pathObject.get("drive").toString();
         String path = pathObject.get("path").toString();
@@ -61,8 +64,9 @@ public class NotesService {
         if(username == null) {
             throw new IllegalStateException("Username is null from security context");
         }
+        logger.trace("Saving user note path to database for user={} with path={}",
+                username, path);
         notesRepository.saveNotePathToDatabase(drive + path, username);
-
     }
 
     /**
@@ -72,13 +76,13 @@ public class NotesService {
     public File fetchNoteFromGoogleDrive(String path, String username){
         String fileName = path.substring(path.lastIndexOf("/") + 1);
         String updatedPath = AI_NOTES_FOLDER + username + "/" + fileName;
-        String pathToTempFile = rcloneHttpRequestGetFile(updatedPath);
+        String pathToTempFile = rcloneHttpRequestGetFile(updatedPath, username);
         return new File(pathToTempFile);
     }
 
-    public StudyGuide generateStudyGuide(String title, String notes) throws IllegalStateException{
-
+    public StudyGuide generateStudyGuide(String title, String notes, String username) throws IllegalStateException{
         // Build the request parameters
+        logger.trace("Initiating OpenAI api request for user={}", username);
         StructuredChatCompletionCreateParams<StudyGuide> params = StructuredChatCompletionCreateParams.<StudyGuide>builder()
                 .addUserMessage("Generate a study guide for the following notes: " + notes)
                 .model("gpt-4o-mini")
@@ -92,13 +96,16 @@ public class NotesService {
         if(res.isEmpty()) {
             throw new IllegalStateException("Result from OpenAI API is empty");
         }
+        logger.trace("Finished extracting content for study guide for user={}", username);
         return res.get();
-//        return writeStudyGuideToFile(res.get(), title);
     }
 
-//    public void validateUsersSubscription(String username){
-//        customUserDetailsService.loadSubscriptionData(username);
-//    }
+    public void validateUsersSubscription(String username) throws UnauthorizedUserException {
+        String status = customUserDetailsService.loadSubscriptionData(username);
+        if(status == null || !status.equals("Active")){
+            throw new UnauthorizedUserException("User subscription status is inactive");
+        }
+    }
 
     /**
      * Write study guide to file with specific formatting

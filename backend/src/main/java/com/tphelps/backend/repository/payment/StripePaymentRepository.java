@@ -1,16 +1,21 @@
 package com.tphelps.backend.repository.payment;
 
+import com.stripe.model.Event;
 import com.tphelps.backend.dtos.payment.SubscriptionCreationDto;
 import com.tphelps.backend.dtos.payment.SubscriptionUpdateDto;
 import org.jooq.DSLContext;
+import org.jooq.JSONB;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.stereotype.Repository;
 
 import static test.generated.tables.Users.USERS;
 import static test.generated.tables.Subscriptions.SUBSCRIPTIONS;
+import static test.generated.tables.StripeEvents.STRIPE_EVENTS;
 
 import test.generated.tables.pojos.Users;
+
+import java.time.OffsetDateTime;
 
 @Repository
 public class StripePaymentRepository {
@@ -32,6 +37,37 @@ public class StripePaymentRepository {
                 .select(USERS.STRIPE_CUSTOMER_ID).from(USERS)
                 .where(USERS.USERNAME.eq(username))
                 .fetchOneInto(String.class);
+    }
+
+    /**
+     * Check if we already have an event_id for this event being sent by stripe
+     * @param eventId - unique column to check against
+     * @return - true if processed already
+     */
+    public boolean isEventProcessed(String eventId){
+        return dsl.fetchExists(
+                dsl.selectOne()
+                        .from(STRIPE_EVENTS)
+                        .where(STRIPE_EVENTS.EVENT_ID.eq(eventId))
+        );
+    }
+
+    /**
+     * Insert an event and raw payload into the DB for a stripe event from our webhook
+     * @param event - the event object
+     * @param payload - the raw json payload
+     */
+    public void processEvent(Event event, String payload){
+        int rowsAffected = dsl.insertInto(STRIPE_EVENTS)
+                .set(STRIPE_EVENTS.EVENT_ID, event.getId())
+                .set(STRIPE_EVENTS.EVENT_TYPE, event.getType())
+                .set(STRIPE_EVENTS.PROCESSED_AT, OffsetDateTime.now())
+                .set(STRIPE_EVENTS.PAYLOAD, JSONB.valueOf(payload))
+                .execute();
+
+        if(rowsAffected == 0){
+            throw new EmptyResultDataAccessException(1);
+        }
     }
 
     /**

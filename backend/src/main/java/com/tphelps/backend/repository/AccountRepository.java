@@ -5,6 +5,7 @@ import com.tphelps.backend.dtos.notes.UserNoteDto;
 import com.tphelps.backend.dtos.responses.PurchaseHistoryResponseDto;
 import com.tphelps.backend.dtos.responses.UserDetailsResponseDto;
 import org.jooq.DSLContext;
+import org.jooq.impl.DSL;
 import org.springframework.stereotype.Repository;
 
 import static test.generated.tables.Users.USERS;
@@ -74,18 +75,6 @@ public class AccountRepository {
         }
     }
 
-    // TODO i dont think i need this anymore
-    public void addCustomerIdToUserAccount(String username, String customerId){
-        int rowsAffected = dslContext.update(USERS)
-                .set(USERS.STRIPE_CUSTOMER_ID, customerId)
-                .where(USERS.USERNAME.eq(username))
-                .execute();
-
-        if (rowsAffected == 0) {
-            throw new IllegalArgumentException("User not found");
-        }
-    }
-
     /**
      * Fetch all pertinent user info to store in the front end to reduce repository calls when switching from page to page
      * Get link to note and saved at and store into a list of {@link UserNoteDto} which is stored in a single {@link UserDetailsResponseDto} object
@@ -147,8 +136,23 @@ public class AccountRepository {
     }
 
 
-//    public void getSubscriptionData(String username){
-//        return dslContext.select()
-//                .from()
-//    }
+    /**
+     * Get the subscription status for that user, will either be the farthest one in the future OR
+     * closest one in the pass (a user can have a subscription that expired, and then a new active one)
+     * @param username - user from authenticated obj
+     * @return - the subscription status
+     */
+    public String getSubscriptionStatus(String username){
+        return dslContext.select(SUBSCRIPTIONS.STATUS)
+                .from(SUBSCRIPTIONS)
+                .join(USERS).on(USERS.STRIPE_CUSTOMER_ID.eq(SUBSCRIPTIONS.CUSTOMER_ID))
+                .where(USERS.USERNAME.eq(username))
+                .orderBy(
+                        DSL.when(SUBSCRIPTIONS.CURRENT_PERIOD_END.ge(OffsetDateTime.now()), 0)
+                                .otherwise(1),                       // prioritize future subscriptions first
+                        SUBSCRIPTIONS.CURRENT_PERIOD_END.desc()  // then pick the one ending farthest in future / closest in past
+                )
+                .limit(1)
+                .fetchOneInto(String.class);
+    }
 }
