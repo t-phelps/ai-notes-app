@@ -23,6 +23,7 @@ public class EmailService {
 
     @Value("${spring.mail.username}") String sender;
     @Value("${salted.key}") String saltedKey;
+    @Value("${front.end.url}") String frontEndUrl;
 
     public EmailService(JavaMailSender mailSender, EmailRepository emailRepository) {
         this.mailSender = mailSender;
@@ -38,7 +39,7 @@ public class EmailService {
         try{
             String token = generateAndStoreToken(email);
             String formattedEmailText = String
-                    .format("Reset your password here: http://localhost:3000/reset?token=%s", token);
+                    .format("Reset your password here: %s/reset?token=%s", frontEndUrl, token);
 
             SimpleMailMessage message = new SimpleMailMessage();
             message.setFrom(sender);

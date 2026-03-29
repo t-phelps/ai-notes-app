@@ -3,6 +3,7 @@ package com.tphelps.backend.service;
 import com.stripe.model.Customer;
 import com.stripe.param.CustomerCreateParams;
 import com.tphelps.backend.controller.exceptions.IllegalRefreshTokenException;
+import com.tphelps.backend.controller.pojos.SubscriptionData;
 import com.tphelps.backend.dtos.MyUserDetails;
 import com.tphelps.backend.dtos.responses.PurchaseHistoryResponseDto;
 import com.tphelps.backend.dtos.responses.UserDetailsResponseDto;
@@ -192,8 +193,12 @@ public class CustomUserDetailsService implements UserDetailsService {
         return accountRepository.getPurchaseHistory(username);
     }
 
-    public String loadSubscriptionData(String username){
+    public SubscriptionData getUserSubscriptionData(String username){
         return accountRepository.getSubscriptionStatus(username);
+    }
+
+    public void decrementUserGenerationsLeft(String username, int deduction){
+        accountRepository.decrementUserGenerationsLeft(username, deduction);
     }
 
     /**
