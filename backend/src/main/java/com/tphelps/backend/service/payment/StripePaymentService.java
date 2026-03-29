@@ -9,13 +9,11 @@ import com.stripe.param.PriceListParams;
 import com.stripe.param.checkout.SessionCreateParams;
 import com.tphelps.backend.dtos.payment.SubscriptionCreationDto;
 import com.tphelps.backend.dtos.payment.SubscriptionUpdateDto;
+import com.tphelps.backend.enums.SubscriptionLevel;
 import com.tphelps.backend.enums.SubscriptionStatus;
-import com.tphelps.backend.repository.AccountRepository;
 import com.tphelps.backend.repository.payment.StripePaymentRepository;
-import org.springframework.beans.factory.ListableBeanFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.converter.StringHttpMessageConverter;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
@@ -24,6 +22,7 @@ import java.time.ZoneOffset;
 import java.util.Map;
 
 import static com.tphelps.backend.enums.SubscriptionStatus.*;
+import static com.tphelps.backend.enums.SubscriptionLevel.*;
 
 @Service
 public class StripePaymentService {
@@ -40,12 +39,17 @@ public class StripePaymentService {
 
 
     private final StripePaymentRepository stripePaymentRepository;
-    private final AccountRepository accountRepository;
+
+
+    private final Map<String, SubscriptionLevel> subscriptionLevelMap = Map.of(
+            "price_1TDAnZ4T0kXStXSKZW3KZcUI", SubscriptionLevel.BASIC,
+            "price_1TDApk4T0kXStXSKD6ki3Us2", SubscriptionLevel.PRO,
+            "price_1TDAq44T0kXStXSKj1ygkVlC", SubscriptionLevel.PREMIUM
+    );
 
     @Autowired
-    public StripePaymentService(StripePaymentRepository stripePaymentRepository, StringHttpMessageConverter stringHttpMessageConverter, ListableBeanFactory listableBeanFactory, AccountRepository accountRepository) {
+    public StripePaymentService(StripePaymentRepository stripePaymentRepository) {
         this.stripePaymentRepository = stripePaymentRepository;
-        this.accountRepository = accountRepository;
     }
 
 
@@ -145,7 +149,8 @@ public class StripePaymentService {
                 OffsetDateTime.ofInstant(Instant.ofEpochSecond(dataList.getCurrentPeriodStart()), ZoneOffset.UTC),
                 OffsetDateTime.ofInstant(Instant.ofEpochSecond(dataList.getCurrentPeriodEnd()), ZoneOffset.UTC),
                 dataList.getPrice().getId(),
-                subscription.getLatestInvoice());
+                subscription.getLatestInvoice(),
+                getSubscriptionLevel(dataList.getPrice().getId()));
 
         stripePaymentRepository.upsertUserSubscription(subscriptionCreationDto);
     }
@@ -202,14 +207,23 @@ public class StripePaymentService {
         return new SubscriptionUpdateDto(
                 subscription.getCustomer(),
                 subscription.getId(),
-                setUserStatus(subscription.getStatus()));
+                getUserStatus(subscription.getStatus()));
     }
 
 
-    private String setUserStatus(String status){
+    private String getUserStatus(String status){
         boolean isActive = SubscriptionStatus.ACTIVE.getValue()
                 .equals(status);
 
         return isActive ? ACTIVE.getValue() : INACTIVE.getValue();
+    }
+
+    /**
+     * get subscription level from map
+     * @param priceId - priceId of the product in stripe given by a stripe event
+     * @return
+     */
+    private int getSubscriptionLevel(String priceId){
+        return subscriptionLevelMap.getOrDefault(priceId, BASIC).getValue();
     }
 }

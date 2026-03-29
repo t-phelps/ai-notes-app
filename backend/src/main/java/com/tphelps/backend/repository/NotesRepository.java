@@ -1,13 +1,14 @@
 package com.tphelps.backend.repository;
 
+import com.tphelps.backend.service.pojos.NoteInformation;
 import org.jooq.DSLContext;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.stereotype.Repository;
 
 import static test.generated.tables.UserNoteHistory.USER_NOTE_HISTORY;
-import test.generated.tables.pojos.UserNoteHistory;
 
 import java.time.LocalTime;
+import java.util.List;
 
 @Repository
 public class NotesRepository {
@@ -24,16 +25,31 @@ public class NotesRepository {
      * @param username - the user for which we want to save their path to note
      * @throws EmptyResultDataAccessException if row not set
      */
-    public void saveNotePathToDatabase(String pathToNote, String username){
-        int rowsAffected = dslContext
+    public int saveNoteToDatabase(String pathToNote, String username, String title, String notes){
+        Integer noteId = dslContext
                 .insertInto(USER_NOTE_HISTORY)
                 .set(USER_NOTE_HISTORY.USERNAME, username)
                 .set(USER_NOTE_HISTORY.LINK_TO_NOTE, pathToNote)
                 .set(USER_NOTE_HISTORY.SAVED_AT, LocalTime.now())
-                .execute();
-
-        if (rowsAffected == 0) {
+                .set(USER_NOTE_HISTORY.TITLE, title)
+                .set(USER_NOTE_HISTORY.TEXT_CONTENT, notes)
+                .returningResult(USER_NOTE_HISTORY.ID)
+                .fetchOneInto(Integer.class);
+        if(noteId == null){
             throw new EmptyResultDataAccessException(1);
         }
+        return noteId;
+    }
+
+    public List<NoteInformation> fetchUsersNotes(int noteId){
+        return dslContext
+                .select(USER_NOTE_HISTORY.TITLE, USER_NOTE_HISTORY.ID)
+                .from(USER_NOTE_HISTORY)
+                .where(USER_NOTE_HISTORY.USERNAME.eq(
+                        dslContext.select(USER_NOTE_HISTORY.USERNAME)
+                                .from(USER_NOTE_HISTORY)
+                                .where(USER_NOTE_HISTORY.ID.eq(noteId))
+                ))
+                .fetchInto(NoteInformation.class);
     }
 }

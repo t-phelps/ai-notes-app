@@ -34,10 +34,12 @@ public class NotesController {
 
     private static final Logger logger = LoggerFactory.getLogger(NotesController.class);
     private final NotesService notesService;
+    private final CustomUserDetailsService customUserDetailsService;
 
     @Autowired
     public NotesController(NotesService notesService, CustomUserDetailsService customUserDetailsService) {
         this.notesService = notesService;
+        this.customUserDetailsService = customUserDetailsService;
     }
 
     /**
@@ -71,17 +73,18 @@ public class NotesController {
      */
     @PostMapping("/download-note")
     public ResponseEntity<StreamingResponseBody> getDownloadNote(@RequestBody Map<String, String> body, @AuthenticationPrincipal UserDetails userDetails) {
+        String username = userDetails.getUsername();
         String path = body.get("path");
         if(path == null || path.isEmpty()){
-            logger.error("Error in download note endpoint with an invalid path for user={}", userDetails.getUsername());
+            logger.error("Error in download note endpoint with an invalid path for user={}", username);
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
         }
 
         try{
-            logger.info("Initiating fetch from google drive for user={}", userDetails.getUsername());
-            File file = notesService.fetchNoteFromGoogleDrive(path, userDetails.getUsername());
+            logger.info("Initiating fetch from google drive for user={}", username);
+            File file = notesService.fetchNoteFromGoogleDrive(path, username);
 
-            logger.trace("Streaming response to frontend for user={}", userDetails.getUsername());
+            logger.trace("Streaming response to frontend for user={}", username);
             StreamingResponseBody stream = outputStream -> {
                 try(InputStream inputStream = new FileInputStream(file)){
                     inputStream.transferTo(outputStream);
@@ -89,7 +92,7 @@ public class NotesController {
                     boolean deleted = file.delete();
                     if(!deleted){
                         logger.error("Failed to delete file at path={} for user={}",
-                                file.getAbsolutePath(), userDetails.getUsername());
+                                file.getAbsolutePath(), username);
                     }
                 }
             };
@@ -101,11 +104,13 @@ public class NotesController {
                     .body(stream);
         }catch(IllegalStateException | EmptyResultDataAccessException e){
             logger.error("Exception caught streaming note to frontend, user={} exception={}",
-                    userDetails.getUsername(), e.getMessage());
+                    username, e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
 
+
+    //TODO this needs to be refactored this is a massive controller
     /**
      * Utilize openai-api to generate a study guide from the notes passed in from the user within the notes request
      * @param notes - populated {@link SaveNotesRequest} from the user
@@ -116,52 +121,69 @@ public class NotesController {
             @RequestBody SaveNotesRequest notes,
             @AuthenticationPrincipal UserDetails userDetails) {
 
+        String username = userDetails.getUsername();
         if(validateNotes(notes)) {
-            logger.error("Empty generate study guide request for user={}", userDetails.getUsername());
+            logger.error("Empty generate study guide request for user={}", username);
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
         }
         try{
             logger.info("Initiating study guide generation for user={} with title={}",
-                    userDetails.getUsername(), notes.title());
+                    username, notes.title());
 
-            notesService.validateUsersSubscription(userDetails.getUsername());
+            notesService.validateUsersSubscription(username);
+            customUserDetailsService.decrementUserGenerationsLeft(username, 1);
 
             StudyGuide studyGuide = notesService.generateStudyGuide(
-                    notes.title(), notes.notes(), userDetails.getUsername());
+                    notes.title(), notes.notes(), username);
 
-            logger.trace("Streaming response to front end for user={}", userDetails.getUsername());
+            logger.trace("Streaming response to front end for user={}", username);
+
             StreamingResponseBody stream = outputStream -> {
-                try{
-                    for(int i = 0; i < studyGuide.questions().size(); i++){
+                var questions = studyGuide.questions();
+
+                try {
+                    for (int i = 0; i < questions.size(); i++) {
+                        var q = questions.get(i);
+
                         String line = String.format(
                                 "%d. %s\n    %c. %s\n",
                                 i + 1,
-                                studyGuide.questions().get(i).question(),
-                                'a',
-                                studyGuide.questions().get(i).answer());
+                                q.question(),
+                                (char) ('a' + i),
+                                q.answer());
+
                         outputStream.write(line.getBytes(StandardCharsets.UTF_8));
                         outputStream.flush();
                     }
-                }catch(IOException e){
+
+                } catch (IOException e) {
                     logger.error(
-                            "IOException occurred while streaming study guide to front end for user={} with exception={}",
-                            userDetails.getUsername(), e.getMessage());
+                            "IOException while streaming for user={} error={}",
+                            username, e.getMessage());
+
                 }
             };
             return ResponseEntity.ok()
                     .contentType(MediaType.TEXT_PLAIN)
                     .body(stream);
-        }catch(UnauthorizedUserException e){
-            logger.error("Unauthorized user tried to access study guide feature user={} at UTC time={} with exception={}",
-                    userDetails.getUsername(), Instant.now(), e.getMessage());
-            return ResponseEntity.status(403).build();
-        }
-        catch(Exception e){
-            logger.error("Exception occurred while generating study guide for user={} with exception={}",
-                    userDetails.getUsername(), e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
-        }
+        } catch(UnauthorizedUserException e){
 
+            logger.error("Unauthorized user tried to access study guide feature user={} at UTC time={} with exception={}",
+                    username, Instant.now(), e.getMessage());
+            return ResponseEntity.status(403).build();
+
+        } catch(EmptyResultDataAccessException e){
+
+            logger.error("Empty result for decrementing generations_left for user={}", username);
+            return  ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+
+        } catch(Exception e){
+
+            logger.error("Exception occurred while generating study guide for user={} with exception={}",
+                    username, e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+
+        }
     }
 
     /**

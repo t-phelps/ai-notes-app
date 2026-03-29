@@ -1,11 +1,13 @@
 package com.tphelps.backend.repository;
 
 
+import com.tphelps.backend.controller.pojos.SubscriptionData;
 import com.tphelps.backend.dtos.notes.UserNoteDto;
 import com.tphelps.backend.dtos.responses.PurchaseHistoryResponseDto;
 import com.tphelps.backend.dtos.responses.UserDetailsResponseDto;
 import org.jooq.DSLContext;
 import org.jooq.impl.DSL;
+import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.stereotype.Repository;
 
 import static test.generated.tables.Users.USERS;
@@ -142,8 +144,8 @@ public class AccountRepository {
      * @param username - user from authenticated obj
      * @return - the subscription status
      */
-    public String getSubscriptionStatus(String username){
-        return dslContext.select(SUBSCRIPTIONS.STATUS)
+    public SubscriptionData getSubscriptionStatus(String username){
+        return dslContext.select(SUBSCRIPTIONS.STATUS, SUBSCRIPTIONS.GENERATIONS_LEFT)
                 .from(SUBSCRIPTIONS)
                 .join(USERS).on(USERS.STRIPE_CUSTOMER_ID.eq(SUBSCRIPTIONS.CUSTOMER_ID))
                 .where(USERS.USERNAME.eq(username))
@@ -153,6 +155,27 @@ public class AccountRepository {
                         SUBSCRIPTIONS.CURRENT_PERIOD_END.desc()  // then pick the one ending farthest in future / closest in past
                 )
                 .limit(1)
-                .fetchOneInto(String.class);
+                .fetchOneInto(SubscriptionData.class);
+    }
+
+
+    /**
+     * Decrement generations left after a successful study guide generation and stream
+     * @param username - user to deduct
+     * @param deduction - constant 1 deduction
+     */
+    public void decrementUserGenerationsLeft(String username, int deduction){
+        int rowsAffected = dslContext.update(SUBSCRIPTIONS)
+                .set(SUBSCRIPTIONS.GENERATIONS_LEFT,
+                        SUBSCRIPTIONS.GENERATIONS_LEFT.subtract(deduction))
+                .from(USERS)
+                .where(USERS.USERNAME.eq(username))
+                .and(SUBSCRIPTIONS.CUSTOMER_ID.eq(USERS.STRIPE_CUSTOMER_ID))
+                .and(SUBSCRIPTIONS.GENERATIONS_LEFT.ge(deduction))
+                .execute();
+
+        if(rowsAffected == 0){
+            throw new EmptyResultDataAccessException(1);
+        }
     }
 }
