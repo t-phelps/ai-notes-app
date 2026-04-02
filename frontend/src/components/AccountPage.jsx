@@ -5,7 +5,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { NavBar } from "./NavBar.jsx";
 import streamDownloadToFile from "./functions/StreamDownloadToFile";
 import retryAuth from "./functions/retryAuth";
-
+import moment from "moment";
 export const AccountPage = () => {
     const navigate = useNavigate();
 
@@ -22,7 +22,8 @@ export const AccountPage = () => {
 
     const[username, setUsername] = useState("");
     const[email, setEmail] = useState("");
-    const[ userNotesArray, setUserNotesArray] = useState([]);
+    const[ clusteredNotes, setClusteredNotes] = useState(() => new Map());
+
 
     const schema = yup.object().shape({
         newPassword: yup
@@ -46,8 +47,10 @@ export const AccountPage = () => {
                     credentials: "include",
                 };
 
+                // TODO this could be 1 query with a join instead of 2 DB calls
                 const purchaseHistory = await retryAuth("http://localhost:8080/account/purchase-history", options);
                 const userDetails = await retryAuth("http://localhost:8080/account/user-details", options);
+                const notes = await retryAuth("http://localhost:8080/notes/fetch-graphed-notes", options);
 
                 if(!purchaseHistory.ok || !userDetails.ok){
                     throw new Error("Fetching user info failed");
@@ -55,21 +58,28 @@ export const AccountPage = () => {
 
                 const historyData = await purchaseHistory.json();
                 const userData = await userDetails.json();
+                const userNotes = await notes.json();
 
-                const formattedHistoryData = historyData.map((item) => ({
-                    ...item,
+                const map = new Map(
+                    Object.entries(userNotes).map(([key, value]) => [
+                        key,
+                        new Set(value)
+                    ])
+                );
+
+                setClusteredNotes(map);
+
+                const formattedHistoryData = historyData
+                    .filter(item => item.status !== null) // remove orphaned status rows
+                    .map((item) => ({
+                    status: item.status,
                     subscriptionPeriod:
-                        (Number(item.current_period_end) - Number(item.current_period_start))
+                        moment(item.current_period_end)
+                            .diff(moment(), "days")
                 }));
-
-                const userNotesList = userData?.userNotesDto || [];
-                userNotesList.forEach((item) => {
-                    item.pathToNote = item.pathToNote.replace("gdrive:/ai-notes/", "");
-                });
 
                 setUsername(userData.username);
                 setEmail(userData.email);
-                setUserNotesArray(userNotesList);
 
                 setSubscription(formattedHistoryData);
             }catch(err){
@@ -137,7 +147,7 @@ export const AccountPage = () => {
         }
     };
 
-    const downloadDocument = async (path) => {
+    const downloadDocument = async (title) => {
         try{
             const options = {
                 method: "POST",
@@ -146,17 +156,41 @@ export const AccountPage = () => {
                     "Content-Type": "application/json",
                 },
                 body: JSON.stringify({
-                    path: path
+                    title: title
                 })
             }
             let response = await retryAuth(`http://localhost:8080/notes/download-note`, options);
 
             console.log("Starting download");
-            await streamDownloadToFile(response, path + ".txt")
+            await streamDownloadToFile(response, title + ".txt")
             console.log("Download complete");
         }catch(err){
             console.log(err);
         }
+    }
+
+    function renderClusters(map) {
+        const elements = [];
+
+        for (const [noteId, noteSet] of map) {
+            elements.push(
+                <div key={noteId}>
+                    <strong>{noteId}</strong>
+                    <div>
+                        {[...noteSet].map((item) => (
+                            <div key={item}>
+                                <div>Title: {item}</div>
+                                <button onClick={() => downloadDocument(item)}>
+                                    Download
+                                </button>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            );
+        }
+
+        return elements;
     }
 
     return (
@@ -228,20 +262,14 @@ export const AccountPage = () => {
                 <div className="account-history">
                     <h2>Notes History</h2>
 
-                    {userNotesArray.length === 0 ? (
+                    {clusteredNotes.size === 0 ? (
                         <p>No notes yet.</p>
                     ) : (
-                        userNotesArray.map((note) => (
-                            <div key={note.pathToNote} className="note-card">
-                                <strong>{note.pathToNote}</strong>{" "}
-                                <span>Saved at: {note.savedAt?.slice(0, 5) ?? "??"}</span>
-                                <button className="download-btn"
-                                        type="submit"
-                                        onClick={() => downloadDocument(note.pathToNote)}>Download
-                                </button>
-                            </div>
-                        ))
-                    )}
+                        <>
+                            {renderClusters(clusteredNotes)}
+                        </>
+                        )
+                    }
                 </div>
 
                 <div className="purchase-history">
@@ -252,8 +280,8 @@ export const AccountPage = () => {
                     ) : (
                         subscription.map((item, index) => (
                             <div key={index}>
-                                <p>Status: {item.status}</p>
-                                <p>Subscription Period: {item.subscriptionPeriod} days</p>
+                                <p>Status: {item?.status}</p>
+                                <p>Subscription Expires: {item.subscriptionPeriod} days</p>
                             </div>
                         ))
                     )}

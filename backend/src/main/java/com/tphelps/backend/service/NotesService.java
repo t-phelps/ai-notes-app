@@ -15,6 +15,7 @@ import com.tphelps.backend.service.exceptions.UnauthorizedUserException;
 import static com.tphelps.backend.service.HttpRequestService.rcloneHttpRequestGetFile;
 import static com.tphelps.backend.service.HttpRequestService.rcloneHttpRequestPost;
 
+import com.tphelps.backend.service.pojos.NoteEdges;
 import org.jooq.tools.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -25,8 +26,7 @@ import org.springframework.stereotype.Service;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 
 @Service
 public class NotesService {
@@ -48,6 +48,18 @@ public class NotesService {
         this.jobsRepository = jobsRepository;
         this.client = OpenAIOkHttpClient.fromEnv();
         this.customUserDetailsService = customUserDetailsService;
+    }
+
+    /**
+     * Fetch clustered notes from the existing notes for the user
+     * @param username - users username
+     * @return - map of cluster name -> titles
+     */
+    public Map<String, Set<String>> fetchClusteredNotes(String username){
+        // fetch all adjacency lists for user in db
+        List<NoteEdges> edgesList = notesRepository.fetchNotesEdges(username);
+
+        return GraphClusterer.clusterEdges(edgesList);
     }
 
     /**
@@ -75,14 +87,15 @@ public class NotesService {
                 username,
                 notesRequest.title(),
                 notesRequest.notes());
-        jobsRepository.createJob(noteId, NoteGraphingStatus.PENDING.getValue());
+        jobsRepository.createJob(noteId, NoteGraphingStatus.PENDING.getValue(), username);
     }
 
     /**
      * Service method for pulling a file from the Google Drive and returning it to the user
-     * @param path - the path where the file is stored in the cloud
+     * @param name - name of the file
      */
-    public File fetchNoteFromGoogleDrive(String path, String username){
+    public File fetchNoteFromGoogleDrive(String name, String username){
+        String path = notesRepository.fetchNote(name);
         String fileName = path.substring(path.lastIndexOf("/") + 1);
         String updatedPath = AI_NOTES_FOLDER + username + "/" + fileName;
         String pathToTempFile = rcloneHttpRequestGetFile(updatedPath, username);

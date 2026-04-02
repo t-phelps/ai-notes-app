@@ -34,7 +34,7 @@ public class TextUtils {
 
         return Arrays.stream(input
                     .toLowerCase()
-                    .replaceAll("[^a-zA-Z0-9]", "") // removes punctuation
+                    .replaceAll("[^a-zA-Z0-9\\s]", "") // removes punctuation but keeps whitespace in tact
                     .split("\\s+")) // split on whitespace
                 .filter(str -> !NLTK_STOPWORDS.contains(str))
                 .collect(Collectors.toSet());

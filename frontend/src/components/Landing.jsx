@@ -12,6 +12,7 @@ export const Landing = () => {
     const [userNotesDataSet, setUserNotesDataSet] = useState(() => new Set());
     const [username, setUsername] = useState("");
     const max = 2000;
+    const [loading, setLoading] = useState(false);
 
     let charRemaining = max - text.length;
 
@@ -54,8 +55,8 @@ export const Landing = () => {
 
     const saveNoteToCloud = async (e) => {
         e.preventDefault();
-
-        if (!text && !title) {
+        if(loading) return;
+        if (!text || !title) {
             setError("Please enter a title or notes");
             return;
         }
@@ -64,6 +65,15 @@ export const Landing = () => {
             setError("Title already exists, please enter a new one");
             return;
         }
+
+        setLoading(true);
+
+
+        setUserNotesDataSet(prev => {
+            const updated = new Set(prev);
+            updated.add(title);
+            return updated;
+        });
 
         try {
             const options = {
@@ -76,26 +86,40 @@ export const Landing = () => {
             let response = await retryAuth("http://localhost:8080/notes/to-cloud", options);
 
             if (!response.ok) {
+                rollbackSet(title);
                 const errorData = await response.json().catch(() => ({}));
                 setError(errorData.message || `Request failed with status ${response.status}`);
                 return;
             }
 
             alert("Successfully Saved To The Cloud!");
-            setUserNotesDataSet(prev => {
-                const updated = new Set(prev);
-                updated.add(title);
-                return updated;
-            });
         } catch (err) {
+            rollbackSet(title);
             console.error("Request failed:", err);
             setError(err.message || "Network Error. Please try again.");
+        } finally{
+            setLoading(false);
         }
     };
+
+    const rollbackSet = (title) => {
+        setUserNotesDataSet(prev => {
+            const updated = new Set(prev);
+            updated.delete(title);
+            return updated;
+        });
+    }
 
     const generateStudyGuide = async (e) => {
         e.preventDefault();
 
+        if (!text || !title) {
+            setError("Please enter a title or notes");
+            return;
+        }
+
+        if(loading) return;
+        setLoading(true);
         try {
             const options = {
                 method: "POST",
@@ -108,9 +132,12 @@ export const Landing = () => {
                     notes: text,
                 }),
             };
-            let response = await fetch("http://localhost:8080/notes/generate-study-guide", options);
+            let response = await retryAuth("http://localhost:8080/notes/generate-study-guide", options);
 
-
+            if(response.status === 403){
+                alert("Unauthorized to utilize this feature. Please purchase a subscription");
+                return;
+            }
             if (!response.ok) {
                 console.log("Failed with status: ", response.status);
                 throw new Error(response.statusText);
@@ -121,6 +148,8 @@ export const Landing = () => {
             console.log("Generated notes");
         }catch(error){
             console.log("Error: ", error.message);
+        } finally{
+            setLoading(false);
         }
     }
 
@@ -161,16 +190,18 @@ export const Landing = () => {
                             <button
                                 className="create-note-button"
                                 type="button"
-                                onClick={saveNoteToCloud}>
-                                Save
+                                onClick={saveNoteToCloud}
+                                disabled={loading}>
+                                {loading ? "Saving..." : "Save"}
                             </button>
 
 
                             <button
                                 className={"generate-study-guide-button"}
                                 type="button"
-                                onClick={generateStudyGuide}>
-                                Generate Study Guide
+                                onClick={generateStudyGuide}
+                                disabled={loading}>
+                                {loading ? "Generating..." : "Generate Study Guide"}
                             </button>
                         </div>
                     </div>
