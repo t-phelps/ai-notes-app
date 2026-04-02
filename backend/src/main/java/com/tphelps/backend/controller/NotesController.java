@@ -27,6 +27,7 @@ import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.Map;
+import java.util.Set;
 
 @RestController
 @RequestMapping("/notes")
@@ -40,6 +41,17 @@ public class NotesController {
     public NotesController(NotesService notesService, CustomUserDetailsService customUserDetailsService) {
         this.notesService = notesService;
         this.customUserDetailsService = customUserDetailsService;
+    }
+
+    @GetMapping("/fetch-graphed-notes")
+    public ResponseEntity<Map<String, Set<String>>> fetchGraphedNotes(@AuthenticationPrincipal UserDetails userDetails){
+        try{
+
+            Map<String, Set<String>> graphedNotesMap = notesService.fetchClusteredNotes(userDetails.getUsername());
+            return ResponseEntity.ok().body(graphedNotesMap);
+        }catch(Exception e){
+            return ResponseEntity.internalServerError().build();
+        }
     }
 
     /**
@@ -72,17 +84,18 @@ public class NotesController {
      * @return response containing the file stream on success
      */
     @PostMapping("/download-note")
-    public ResponseEntity<StreamingResponseBody> getDownloadNote(@RequestBody Map<String, String> body, @AuthenticationPrincipal UserDetails userDetails) {
+    public ResponseEntity<StreamingResponseBody> getDownloadNote(@RequestBody Map<String, String> body,
+                                                                 @AuthenticationPrincipal UserDetails userDetails) {
         String username = userDetails.getUsername();
-        String path = body.get("path");
-        if(path == null || path.isEmpty()){
+        String title = body.get("title");
+        if(title == null || title.isEmpty()){
             logger.error("Error in download note endpoint with an invalid path for user={}", username);
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
         }
 
         try{
             logger.info("Initiating fetch from google drive for user={}", username);
-            File file = notesService.fetchNoteFromGoogleDrive(path, username);
+            File file = notesService.fetchNoteFromGoogleDrive(title, username);
 
             logger.trace("Streaming response to frontend for user={}", username);
             StreamingResponseBody stream = outputStream -> {

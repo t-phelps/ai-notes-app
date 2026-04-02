@@ -70,7 +70,8 @@ public class SecurityConfig {
                             .requestMatchers(
                                     "/stripe/create-checkout-session", "/stripe/create-portal-session",
                                     "/account/delete", "/account/change-password", "/account/user-details",
-                                    "/notes/to-cloud", "/notes/generate-study-guide", "/notes/download-note/**").authenticated()
+                                    "/notes/to-cloud", "/notes/generate-study-guide", "/notes/download-note/**",
+                                    "/notes/fetch-graphed-notes").authenticated()
                             .anyRequest().authenticated();
                 })
                 // disable default login forms

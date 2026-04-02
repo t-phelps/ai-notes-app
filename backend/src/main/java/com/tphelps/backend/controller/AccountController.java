@@ -141,7 +141,7 @@ public class AccountController {
      * @return status 200 with pertinent user details if authenticated
      */
     @GetMapping("/user-details")
-    public ResponseEntity<?> getUserDetails(@AuthenticationPrincipal UserDetails userDetails) {
+    public ResponseEntity<UserDetailsResponseDto> getUserDetails(@AuthenticationPrincipal UserDetails userDetails) {
         UserDetailsResponseDto userDetailsResponseDto = customUserDetailsService.getUserHistory(userDetails.getUsername());
         return ResponseEntity.ok().body(userDetailsResponseDto);
     }

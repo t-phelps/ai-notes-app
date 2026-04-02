@@ -5,24 +5,27 @@ import retryAuth from "./functions/retryAuth";
 export const Payment = () => {
 
     const paymentKeysMap = new Map();
-    paymentKeysMap.set("test", "test_key_1");
+    // TODO fix this because i added new products and dont remember what this was for
+    paymentKeysMap.set("premium_monthly", "premium_monthly");
+    paymentKeysMap.set("pro_monthly", "pro_monthly");
+    paymentKeysMap.set("basic_monthly", "basic_monthly");
 
     const period = "1 Month";
     const cardsMap = new Map();
-    cardsMap.set("Basic Subscription", { price: "$5", length: period });
-    cardsMap.set("Advanced Subscription", { price: "$10", length: period });
-    cardsMap.set("Unlimited Subscription", { price: "$25", length: period });
+    cardsMap.set("Basic Subscription", { price: "$5", length: period, lookup_key: "basic_monthly"});
+    cardsMap.set("Pro Subscription", { price: "$10", length: period, lookup_key: "pro_monthly" });
+    cardsMap.set("Premium Subscription", { price: "$25", length: period, lookup_key: "premium_monthly" });
 
     /**
      * Handle the creation of the checkout session via stripe
      * @returns {Promise<void>}
      */
-    const handleCreateSession = async () => {
+    const handleCreateSession = async (lookup_key) => {
         try {
             const options = {
                 method: "POST",
                 body: JSON.stringify({
-                    lookup_key: "test_key_1",
+                    lookup_key: lookup_key, // dont need to send this if its already a request param
                 }),
                 headers: {
                     "Content-Type": "application/json",
@@ -32,7 +35,7 @@ export const Payment = () => {
 
 
             const response = await retryAuth(
-                `http://localhost:8080/stripe/create-checkout-session?lookup_key=${paymentKeysMap.get("test")}`,
+                `http://localhost:8080/stripe/create-checkout-session?lookup_key=${lookup_key}`,
                 options);
 
 
@@ -91,7 +94,9 @@ export const Payment = () => {
                             <p>{key}</p>
                             <p>Price: {value.price}</p>
                             <p>Time: {value.length}</p>
-                            <button onClick={handleCreateSession}>Subscribe</button>
+                            <button onClick={() => handleCreateSession(value.lookup_key)}>
+                                Subscribe
+                            </button>
                         </div>
                     ))}
                 </div>

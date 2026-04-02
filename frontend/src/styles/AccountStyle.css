@@ -29,6 +29,10 @@
     box-sizing: border-box;      /* include padding in width */
 }
 
+.account-history  {
+
+}
+
 .account-info {
     margin-bottom: 20px;
     font: 700 18px/1 "Roboto", sans-serif;

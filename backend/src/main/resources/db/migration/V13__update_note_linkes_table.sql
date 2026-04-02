@@ -1,0 +1,2 @@
+ALTER TABLE note_links
+ADD COLUMN username VARCHAR(255) NOT NULL;

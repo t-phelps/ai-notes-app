@@ -85,23 +85,15 @@ public class AccountRepository {
      */
     public UserDetailsResponseDto getUserInfo(String username){
 
-        List<UserNoteDto> userNotesDto = dslContext.select(USER_NOTE_HISTORY.LINK_TO_NOTE, USER_NOTE_HISTORY.SAVED_AT)
-                .from(USER_NOTE_HISTORY)
-                .where(USER_NOTE_HISTORY.USERNAME.eq(username))
-                .fetch(row -> new UserNoteDto(
-                        row.get(USER_NOTE_HISTORY.LINK_TO_NOTE),
-                        row.get(USER_NOTE_HISTORY.SAVED_AT)));
-
         var row = dslContext
                 .select(USERS.USERNAME, USERS.EMAIL)
                 .from(USERS)
                 .where(USERS.USERNAME.eq(username))
                 .fetchOne();
 
-        return new  UserDetailsResponseDto(
+        return new UserDetailsResponseDto(
                 row.get(USERS.EMAIL),
-                row.get(USERS.USERNAME),
-                userNotesDto);
+                row.get(USERS.USERNAME));
     }
 
     /**
@@ -111,7 +103,6 @@ public class AccountRepository {
      */
     public List<PurchaseHistoryResponseDto> getPurchaseHistory(String username){
         return dslContext.select(
-                        SUBSCRIPTIONS.CURRENT_PERIOD_START.as("current_period_start"),
                         SUBSCRIPTIONS.CURRENT_PERIOD_END.as("current_period_end"),
                         SUBSCRIPTIONS.STATUS.as("status"))
                 .from(USERS)

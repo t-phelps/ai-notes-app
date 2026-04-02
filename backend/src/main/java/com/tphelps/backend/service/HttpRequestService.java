@@ -40,7 +40,7 @@ public class HttpRequestService {
      * @param notes
      * @return
      */
-    public static JSONObject rcloneHttpRequestPost(String title, String notes, String username) throws IOException{
+    public static JSONObject rcloneHttpRequestPost(String title, String notes, String username){
         try {
             logger.trace("Creating temporary file with title={} for user={}", title, username);
             // create a temp file with notes written to file
@@ -52,6 +52,7 @@ public class HttpRequestService {
             logger.trace("Initiating rclone post request for user={}", username);
             buildHttpPostRequest(jsonObject);
 
+            // TODO get rid of this and move to a scheduled job
             logger.trace("Deleting temporary file with path={}", pathToTempFile);
             Files.deleteIfExists(Path.of(pathToTempFile));
 

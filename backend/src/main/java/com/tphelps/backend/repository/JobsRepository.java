@@ -24,11 +24,12 @@ public class JobsRepository {
      * @param noteId - note_id fk from user_note_history
      * @param status - status of job, default PENDING
      */
-    public void createJob(int noteId, String status){
+    public void createJob(int noteId, String status, String username){
         int rowsAffected = dslContext
                 .insertInto(JOBS)
                 .set(JOBS.NOTE_ID, noteId)
                 .set(JOBS.STATUS, status)
+                .set(JOBS.USERNAME, username)
                 .execute();
 
         if(rowsAffected == 0) {
@@ -42,11 +43,11 @@ public class JobsRepository {
      */
     public List<NoteGraphingJob> fetchPendingJobs(){
         return dslContext
-                .select(JOBS.NOTE_ID, JOBS.STATUS, JOBS.ATTEMPT_COUNT)
+                .select(JOBS.NOTE_ID, JOBS.STATUS, JOBS.ATTEMPT_COUNT, JOBS.USERNAME)
                 .from(JOBS)
                 .where(JOBS.STATUS.eq(NoteGraphingStatus.PENDING.getValue()))
                 .orderBy(JOBS.CREATED_AT.asc())
-                .limit(10)
+                .limit(50)
                 .fetchInto(NoteGraphingJob.class);
     }
 
@@ -88,9 +89,15 @@ public class JobsRepository {
     }
 
 
-    public void setJobCompleted(int noteId){
+    /**
+     * Set job status to completed
+     * @param noteId - noteId for the job
+     */
+    public void setJobCompleted(int noteId, short attempts){
+        attempts += 1;
         int rowsAffected = dslContext
                 .update(JOBS)
+                .set(JOBS.ATTEMPT_COUNT, attempts)
                 .set(JOBS.STATUS, NoteGraphingStatus.COMPLETED.getValue())
                 .where(JOBS.NOTE_ID.eq(noteId))
                 .execute();
