@@ -51,7 +51,7 @@ export const Signup = () => {
             // validate schema from yup
             await schema.validate({username, email, password, confirmPassword});
 
-            const response = await fetch("http://localhost:8080/auth/create", {
+            const response = await fetch("${BASE_URL}/auth/create", {
                 method: "POST",
                 body: JSON.stringify({
                     email: email,

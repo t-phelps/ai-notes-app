@@ -35,7 +35,7 @@ export const Payment = () => {
 
 
             const response = await retryAuth(
-                `http://localhost:8080/stripe/create-checkout-session?lookup_key=${lookup_key}`,
+                `${BASE_URL}/stripe/create-checkout-session?lookup_key=${lookup_key}`,
                 options);
 
 
@@ -60,7 +60,7 @@ export const Payment = () => {
      */
     const handleEditSubscription = async () => {
         try {
-            const response = await fetch("http://localhost:8080/stripe/create-portal-session", {
+            const response = await fetch("${BASE_URL}/stripe/create-portal-session", {
                 method: "POST",
                 credentials: "include",
             });

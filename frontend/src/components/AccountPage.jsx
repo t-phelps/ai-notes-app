@@ -23,6 +23,7 @@ export const AccountPage = () => {
     const[username, setUsername] = useState("");
     const[email, setEmail] = useState("");
     const[ clusteredNotes, setClusteredNotes] = useState(() => new Map());
+    const [loading, setLoading] = useState(false);
 
 
     const schema = yup.object().shape({
@@ -48,9 +49,9 @@ export const AccountPage = () => {
                 };
 
                 // TODO this could be 1 query with a join instead of 2 DB calls
-                const purchaseHistory = await retryAuth("http://localhost:8080/account/purchase-history", options);
-                const userDetails = await retryAuth("http://localhost:8080/account/user-details", options);
-                const notes = await retryAuth("http://localhost:8080/notes/fetch-graphed-notes", options);
+                const purchaseHistory = await retryAuth("${BASE_URL}/account/purchase-history", options);
+                const userDetails = await retryAuth("${BASE_URL}/account/user-details", options);
+                const notes = await retryAuth("${BASE_URL}/notes/fetch-clustered-notes", options);
 
                 if(!purchaseHistory.ok || !userDetails.ok){
                     throw new Error("Fetching user info failed");
@@ -59,6 +60,20 @@ export const AccountPage = () => {
                 const historyData = await purchaseHistory.json();
                 const userData = await userDetails.json();
                 const userNotes = await notes.json();
+
+                const formattedHistoryData = historyData
+                    .filter(item => item.status !== null) // remove orphaned status rows
+                    .map((item) => ({
+                        status: item.status,
+                        subscriptionPeriod:
+                            moment(item.current_period_end)
+                                .diff(moment(), "days")
+                    }));
+
+                setUsername(userData.username);
+                setEmail(userData.email);
+
+                setSubscription(formattedHistoryData);
 
                 const map = new Map(
                     Object.entries(userNotes).map(([key, value]) => [
@@ -69,19 +84,7 @@ export const AccountPage = () => {
 
                 setClusteredNotes(map);
 
-                const formattedHistoryData = historyData
-                    .filter(item => item.status !== null) // remove orphaned status rows
-                    .map((item) => ({
-                    status: item.status,
-                    subscriptionPeriod:
-                        moment(item.current_period_end)
-                            .diff(moment(), "days")
-                }));
 
-                setUsername(userData.username);
-                setEmail(userData.email);
-
-                setSubscription(formattedHistoryData);
             }catch(err){
                 console.log(err)
             }
@@ -92,6 +95,7 @@ export const AccountPage = () => {
 
     const handlePasswordChange = async (e) => {
         e.preventDefault();
+        setLoading(true);
         try {
             await schema.validate({
                 newPassword,
@@ -107,7 +111,7 @@ export const AccountPage = () => {
                     oldPassword,
                 }),
             };
-            const response = await retryAuth("http://localhost:8080/account/change-password", options);
+            const response = await retryAuth("${BASE_URL}/account/change-password", options);
 
             if (!response.ok) throw new Error("Failed to change password");
 
@@ -115,13 +119,16 @@ export const AccountPage = () => {
             setOldPassword("");
             navigate("/");
         } catch (error) {
+
             console.log(error);
+        } finally {
+            setLoading(false);
         }
     };
 
     const handleAccountDelete = async (e) => {
         e.preventDefault();
-
+        setLoading(true);
         if (deletePassword !== confirmDeletePassword) {
             console.log("Passwords do not match");
             return;
@@ -136,7 +143,7 @@ export const AccountPage = () => {
                     password: deletePassword,
                 }),
             }
-            const response = await retryAuth("http://localhost:8080/account/delete", options);
+            const response = await retryAuth("${BASE_URL}/account/delete", options);
 
             if (!response.ok) throw new Error("Failed to delete account");
 
@@ -144,11 +151,14 @@ export const AccountPage = () => {
             navigate("/");
         } catch (error) {
             console.log(error);
+        } finally {
+            setLoading(false);
         }
     };
 
     const downloadDocument = async (title) => {
         try{
+            setLoading(true);
             const options = {
                 method: "POST",
                 credentials: "include",
@@ -159,13 +169,15 @@ export const AccountPage = () => {
                     title: title
                 })
             }
-            let response = await retryAuth(`http://localhost:8080/notes/download-note`, options);
+            let response = await retryAuth(`${BASE_URL}/notes/download-note`, options);
 
             console.log("Starting download");
             await streamDownloadToFile(response, title + ".txt")
             console.log("Download complete");
         }catch(err){
             console.log(err);
+        } finally {
+            setLoading(false);
         }
     }
 
@@ -180,8 +192,10 @@ export const AccountPage = () => {
                         {[...noteSet].map((item) => (
                             <div key={item}>
                                 <div>Title: {item}</div>
-                                <button onClick={() => downloadDocument(item)}>
-                                    Download
+                                <button
+                                    onClick={() => downloadDocument(item)}
+                                    disabled={loading}>
+                                    {loading ? "Downloading..." : "Download"}
                                 </button>
                             </div>
                         ))}
@@ -231,7 +245,12 @@ export const AccountPage = () => {
                                 onChange={(e) => setConfirmedNewPassword(e.target.value)}
                             />
 
-                            <button className="change-pwd-btn" type="submit">Change Password</button>
+                            <button
+                                className="change-pwd-btn"
+                                type="submit"
+                                disabled={loading}>
+                                {loading ? "Changing..." : "Change Password"}
+                            </button>
                         </form>
                     </div>
 
@@ -254,7 +273,12 @@ export const AccountPage = () => {
                                 onChange={(e) => setConfirmDeletePassword(e.target.value)}
                             />
 
-                            <button className="account-delete-btn" type="submit">Delete Account</button>
+                            <button
+                                className="account-delete-btn"
+                                type="submit"
+                                disabled={loading}>
+                                {loading ? "Deleting..." : "Delete"}
+                            </button>
                         </form>
                     </div>
                 </div>

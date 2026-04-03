@@ -10,7 +10,7 @@ const retryAuth = async (url, options = {}) => {
 
         // If no refresh is currently happening, start one
         if (!refreshPromise) {
-            refreshPromise = fetch("http://localhost:8080/auth/refresh", {
+            refreshPromise = fetch("${BASE_URL}/auth/refresh", {
                 method: "POST",
                 credentials: "include"
             }).then(res => {

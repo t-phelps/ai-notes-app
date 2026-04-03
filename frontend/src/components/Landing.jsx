@@ -23,7 +23,7 @@ export const Landing = () => {
                     credentials: "include",
                 }
 
-                const userDetails = await retryAuth("http://localhost:8080/account/user-details", options);
+                const userDetails = await retryAuth("${BASE_URL}/account/user-details", options);
 
                 if (!userDetails.ok) {
                     console.error("Error fetching user details within useEffect");
@@ -83,7 +83,7 @@ export const Landing = () => {
                 body: JSON.stringify({ title, notes: text }),
             };
 
-            let response = await retryAuth("http://localhost:8080/notes/to-cloud", options);
+            let response = await retryAuth("${BASE_URL}/notes/to-cloud", options);
 
             if (!response.ok) {
                 rollbackSet(title);
@@ -132,7 +132,7 @@ export const Landing = () => {
                     notes: text,
                 }),
             };
-            let response = await retryAuth("http://localhost:8080/notes/generate-study-guide", options);
+            let response = await retryAuth("${BASE_URL}/notes/generate-study-guide", options);
 
             if(response.status === 403){
                 alert("Unauthorized to utilize this feature. Please purchase a subscription");

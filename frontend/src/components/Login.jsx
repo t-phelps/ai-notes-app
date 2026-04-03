@@ -17,10 +17,6 @@ export const LoginComponent = () => {
         password: yup.string().required("Password is required"),
     });
 
-    const handleGoogleLogin = () => {
-
-    }
-
     /**
      * handle
      * @param e
@@ -31,7 +27,7 @@ export const LoginComponent = () => {
         try {
             await schema.validate({username, password}); // throws error if not valid
 
-            const response = await fetch("http://localhost:8080/auth/login", {
+            const response = await fetch("${BASE_URL}/auth/login", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
@@ -66,7 +62,6 @@ export const LoginComponent = () => {
                 <button className={"regular-button"} type="submit">Login</button>
                 <p>Forgot Password? <Link to="/reset-password">Reset!</Link></p>
                 <p className="or-message">------------- or -------------</p>
-                <GoogleButton className="google-button" type="light" onClick={handleGoogleLogin} />
                 <p className="create-account">Not a user? <Link to="/create-account">Register Today!</Link></p>
             </form>
         </div>
