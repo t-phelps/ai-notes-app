@@ -58,12 +58,14 @@ Failures
 Plan changes
 
 🔐 Authentication & Security
+
 JWT-based authentication (stateless)
 Short-lived access tokens (15 min)
 Refresh tokens (7 days, HttpOnly cookies)
 Secure password reset via expiring hashed tokens
 
 ⚙️ Account Management
+
 Users can:
 
 Update passwords
@@ -72,7 +74,9 @@ View subscription status
 Track purchase history
 
 Tech Stack
-Backend
+
+Backend:
+
 Java 17 + Spring Boot 3
 Spring Security + JWT
 jOOQ + Flyway
@@ -82,19 +86,28 @@ OpenAI API
 Gmail SMTP
 rclone (Google Drive integration)
 
-Frontend
+Frontend:
+
 React 19 + React Router v7
 Bootstrap 5
 Yup (validation)
 Lucide React (icons)
 
 System Architecture
+
 frontend/      → React SPA (Azure Static Web Apps)
+
 backend/       → Spring Boot API (Dockerized, Azure App Service)
+
 PostgreSQL     → Relational database
+
 Google Drive   → Note storage (via rclone server)
+
 Stripe         → Billing + subscriptions
+
 OpenAI         → AI-powered study guide generation
+
+
 How Smart Directories Actually Work
 
 This is the core idea behind the project.
