@@ -3,6 +3,7 @@ import "../styles/LandingStyle.css";
 import {useEffect, useState} from "react";
 import streamDownloadToFile from "./functions/StreamDownloadToFile";
 import retryAuth from "./functions/retryAuth";
+import BASE_URL from "../config.js";
 
 export const Landing = () => {
 
@@ -23,7 +24,7 @@ export const Landing = () => {
                     credentials: "include",
                 }
 
-                const userDetails = await retryAuth("${BASE_URL}/account/user-details", options);
+                const userDetails = await retryAuth(`${BASE_URL}/account/user-details`, options);
 
                 if (!userDetails.ok) {
                     console.error("Error fetching user details within useEffect");
@@ -83,7 +84,7 @@ export const Landing = () => {
                 body: JSON.stringify({ title, notes: text }),
             };
 
-            let response = await retryAuth("${BASE_URL}/notes/to-cloud", options);
+            let response = await retryAuth(`${BASE_URL}/notes/to-cloud`, options);
 
             if (!response.ok) {
                 rollbackSet(title);
@@ -132,7 +133,7 @@ export const Landing = () => {
                     notes: text,
                 }),
             };
-            let response = await retryAuth("${BASE_URL}/notes/generate-study-guide", options);
+            let response = await retryAuth(`${BASE_URL}/notes/generate-study-guide`, options);
 
             if(response.status === 403){
                 alert("Unauthorized to utilize this feature. Please purchase a subscription");

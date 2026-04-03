@@ -1,6 +1,7 @@
 import "../styles/PaymentStyle.css";
 import {NavBar} from "./NavBar";
 import retryAuth from "./functions/retryAuth";
+import BASE_URL from "../config.js";
 
 export const Payment = () => {
 
@@ -60,7 +61,7 @@ export const Payment = () => {
      */
     const handleEditSubscription = async () => {
         try {
-            const response = await fetch("${BASE_URL}/stripe/create-portal-session", {
+            const response = await fetch(`${BASE_URL}/stripe/create-portal-session`, {
                 method: "POST",
                 credentials: "include",
             });

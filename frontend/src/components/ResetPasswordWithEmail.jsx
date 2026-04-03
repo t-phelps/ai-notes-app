@@ -3,6 +3,8 @@ import "../styles/Global.css";
 import {disableButton} from "../components/functions/DisableButton.jsx";
 import {useNavigate} from "react-router-dom";
 import * as yup from "yup";
+import BASE_URL from "../config.js";
+
 export const ResetPasswordWithEmail = () => {
 
     const [email, setEmail] = useState("");
@@ -26,7 +28,7 @@ export const ResetPasswordWithEmail = () => {
 
             alert("Email will be sent if the account exists");
 
-            const response = await fetch("${BASE_URL}/mail/reset-password", {
+            const response = await fetch(`${BASE_URL}/mail/reset-password`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({

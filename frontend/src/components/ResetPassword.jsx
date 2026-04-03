@@ -3,6 +3,7 @@ import {useState} from "react";
 import * as yup from "yup";
 import { useSearchParams} from "react-router-dom";
 import {useNavigate} from "react-router-dom";
+import BASE_URL from "../config.js";
 
 export const ResetPassword = () => {
     const schema = yup.object().shape({
@@ -37,7 +38,7 @@ export const ResetPassword = () => {
                 return;
             }
 
-            const response = await fetch("${BASE_URL}/account/reset-password", {
+            const response = await fetch(`${BASE_URL}/account/reset-password`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({

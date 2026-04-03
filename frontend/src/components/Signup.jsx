@@ -3,6 +3,7 @@ import {useState} from "react";
 import * as yup from "yup";
 import {Link} from "react-router-dom";
 import {useNavigate} from "react-router-dom";
+import BASE_URL from "../config.js";
 
 export const Signup = () => {
     const navigate = useNavigate();
@@ -51,7 +52,7 @@ export const Signup = () => {
             // validate schema from yup
             await schema.validate({username, email, password, confirmPassword});
 
-            const response = await fetch("${BASE_URL}/auth/create", {
+            const response = await fetch(`${BASE_URL}/auth/create`, {
                 method: "POST",
                 body: JSON.stringify({
                     email: email,
