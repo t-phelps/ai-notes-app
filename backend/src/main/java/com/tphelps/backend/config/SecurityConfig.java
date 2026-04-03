@@ -2,6 +2,7 @@ package com.tphelps.backend.config;
 
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.jooq.ExceptionTranslatorExecuteListener;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -25,6 +26,9 @@ import java.util.List;
 @EnableWebSecurity
 public class SecurityConfig {
     private final JwtAuthEntryPoint jwtAuthEntryPoint;
+
+    @Value("${front.end.url}")
+    private String frontEndUrl;
 
     @Autowired
     public SecurityConfig(JwtAuthEntryPoint jwtAuthEntryPoint) {
@@ -53,7 +57,7 @@ public class SecurityConfig {
                 .cors(cors -> cors.configurationSource(request -> {
                     CorsConfiguration config = new CorsConfiguration();
                     config.setAllowCredentials(true);
-                    config.setAllowedOrigins(List.of("http://localhost:3000"));
+                    config.setAllowedOrigins(List.of(frontEndUrl));
                     config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
                     config.setAllowedHeaders(List.of("*"));
                     return config;
