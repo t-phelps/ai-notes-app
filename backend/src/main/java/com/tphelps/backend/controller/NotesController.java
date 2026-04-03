@@ -205,6 +205,6 @@ public class NotesController {
      * @return true if not valid, false if valid
      */
     private boolean validateNotes(SaveNotesRequest notes) {
-        return notes.title().isEmpty() && notes.notes().isEmpty();
+        return notes.title().isEmpty() || notes.notes().isEmpty();
     }
 }

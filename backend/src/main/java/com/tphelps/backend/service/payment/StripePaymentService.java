@@ -12,6 +12,7 @@ import com.tphelps.backend.dtos.payment.SubscriptionUpdateDto;
 import com.tphelps.backend.enums.SubscriptionLevel;
 import com.tphelps.backend.enums.SubscriptionStatus;
 import com.tphelps.backend.repository.payment.StripePaymentRepository;
+import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -29,10 +30,8 @@ public class StripePaymentService {
 
     private static Gson gson = new Gson();
 
-    // value does NOT inject into static fields
-    // Caching issues and i have no idea why its still caching old test keys
-//    @Value("${stripe.api.key}")
-//    private String STRIPE_API_KEY;
+    @Value("${stripe.api.key}")
+    private String STRIPE_API_KEY;
 
     @Value("${front.end.url}")
     private String FRONTEND_URL;
@@ -46,6 +45,11 @@ public class StripePaymentService {
             "price_1TDApk4T0kXStXSKD6ki3Us2", SubscriptionLevel.PRO,
             "price_1TDAq44T0kXStXSKj1ygkVlC", SubscriptionLevel.PREMIUM
     );
+
+    @PostConstruct
+    public void init(){
+        Stripe.apiKey = STRIPE_API_KEY;;
+    }
 
     @Autowired
     public StripePaymentService(StripePaymentRepository stripePaymentRepository) {
@@ -78,11 +82,6 @@ public class StripePaymentService {
      * @throws StripeException - if any stripe api error occurs
      */
     public Map<String, String> getCreateCheckoutSessionRedirectUrl(String key, String username) throws StripeException {
-        String stripeKey = System.getenv("STRIPE_TEST_KEY");
-        if(stripeKey == null || stripeKey.isEmpty()) {
-            throw new IllegalStateException("Environment variable STRIPE_TEST_KEY is not set");
-        }
-        Stripe.apiKey = stripeKey;
 
         PriceListParams priceListParams = PriceListParams.builder().addLookupKey(key).build();
         PriceCollection prices = Price.list(priceListParams);// requires a product within stripe dashboard to have a lookup_key assigned to the product
@@ -111,11 +110,6 @@ public class StripePaymentService {
      * @throws StripeException - if any stripe api error occurs
      */
     public Map<String, String> getPortalSessionRedirectUrl(String username) throws StripeException {
-        String stripeKey = System.getenv("STRIPE_TEST_KEY");
-        if(stripeKey == null || stripeKey.isEmpty()) {
-            throw new IllegalStateException("Environment variable STRIPE_TEST_KEY is not set");
-        }
-        Stripe.apiKey = stripeKey;
         java.lang.String  stripeCustomerId= stripePaymentRepository.getUserStripeCustomerId(username);
 
         com.stripe.param.billingportal.SessionCreateParams params = new com.stripe.param.billingportal.SessionCreateParams.Builder()
