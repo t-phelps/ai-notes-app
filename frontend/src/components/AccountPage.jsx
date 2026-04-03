@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import "../styles/AccountStyle.css";
 import * as yup from "yup";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate} from "react-router-dom";
 import { NavBar } from "./NavBar.jsx";
 import streamDownloadToFile from "./functions/StreamDownloadToFile";
 import retryAuth from "./functions/retryAuth";
@@ -88,7 +88,7 @@ export const AccountPage = () => {
 
 
             }catch(err){
-                console.log(err)
+                console.error(err)
             }
         };
 
@@ -117,12 +117,11 @@ export const AccountPage = () => {
 
             if (!response.ok) throw new Error("Failed to change password");
 
-            console.log("Password changed successfully");
             setOldPassword("");
             navigate("/");
         } catch (error) {
 
-            console.log(error);
+            console.error(error);
         } finally {
             setLoading(false);
         }
@@ -132,7 +131,7 @@ export const AccountPage = () => {
         e.preventDefault();
         setLoading(true);
         if (deletePassword !== confirmDeletePassword) {
-            console.log("Passwords do not match");
+            console.error("Passwords do not match");
             return;
         }
 
@@ -148,11 +147,9 @@ export const AccountPage = () => {
             const response = await retryAuth(`${BASE_URL}/account/delete`, options);
 
             if (!response.ok) throw new Error("Failed to delete account");
-
-            console.log("Account deleted successfully");
             navigate("/");
         } catch (error) {
-            console.log(error);
+            console.error(error);
         } finally {
             setLoading(false);
         }
@@ -173,11 +170,9 @@ export const AccountPage = () => {
             }
             let response = await retryAuth(`${BASE_URL}/notes/download-note`, options);
 
-            console.log("Starting download");
             await streamDownloadToFile(response, title + ".txt")
-            console.log("Download complete");
         }catch(err){
-            console.log(err);
+            console.error(err);
         } finally {
             setLoading(false);
         }

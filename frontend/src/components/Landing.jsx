@@ -11,7 +11,6 @@ export const Landing = () => {
     const [text, setText] = useState("");
     const [error, setError] = useState("");
     const [userNotesDataSet, setUserNotesDataSet] = useState(() => new Set());
-    const [username, setUsername] = useState("");
     const max = 2000;
     const [loading, setLoading] = useState(false);
 
@@ -32,8 +31,7 @@ export const Landing = () => {
                 }
 
                 const userDetailsResponse = await userDetails.json();
-                console.log(userDetailsResponse.username);
-                console.log(userDetailsResponse);
+
                 const formattedUserNotesSet = new Set(
                     userDetailsResponse.userNotesDto.map(note =>
                         note.pathToNote
@@ -42,9 +40,7 @@ export const Landing = () => {
                     )
                 );
 
-                console.log(formattedUserNotesSet);
                 setUserNotesDataSet(formattedUserNotesSet);
-                console.log("User notes accessed");
 
             }catch(err){
                 console.error(err);
@@ -140,15 +136,13 @@ export const Landing = () => {
                 return;
             }
             if (!response.ok) {
-                console.log("Failed with status: ", response.status);
                 throw new Error(response.statusText);
             }
 
             await streamDownloadToFile(response, "studyGuide.txt");
 
-            console.log("Generated notes");
         }catch(error){
-            console.log("Error: ", error.message);
+            console.error(error);
         } finally{
             setLoading(false);
         }

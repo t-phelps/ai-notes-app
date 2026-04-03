@@ -44,10 +44,9 @@ export const LoginComponent = () => {
                 throw new Error(response.statusText);
             }
 
-            console.log("User logged in successfully");
             navigate("/landing");
         }catch(err) {
-            console.log("Error occurred while logging in: ", err);
+            console.error(err);
         }
     }
 

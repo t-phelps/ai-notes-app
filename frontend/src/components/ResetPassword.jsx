@@ -55,7 +55,7 @@ export const ResetPassword = () => {
             alert("Reset password reset successfully.");
             navigate("/")
         }catch(err){
-            console.log(err);
+            console.error(err);
         }
     }
 
@@ -68,7 +68,7 @@ export const ResetPassword = () => {
               <label htmlFor={"confirm-password"}>Confirm Password: </label>
               <input className={"regular-input"} type={"confirm-password"} onChange={(e) => setConfirmPassword(e.target.value)}/>
               <button className={"regular-button"} type="submit">Reset Password</button>
-              <p>{error && <p className="error">{error}</p>}</p>
+              <div>{error && <p className="error">{error}</p>}</div>
           </form>
       </div>
     );

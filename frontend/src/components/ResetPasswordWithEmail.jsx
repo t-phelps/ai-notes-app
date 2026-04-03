@@ -1,6 +1,6 @@
 import {useState} from "react";
 import "../styles/Global.css";
-import {disableButton} from "../components/functions/DisableButton.jsx";
+import {disableButton} from "./functions/DisableButton.jsx";
 import {useNavigate} from "react-router-dom";
 import * as yup from "yup";
 import BASE_URL from "../config.js";
@@ -38,12 +38,11 @@ export const ResetPasswordWithEmail = () => {
 
             // dont let users see this for security reasons
             if(!response.ok){
-                console.log(response.status);
                 return;
             }
-
+            navigate("/");
         }catch(err){
-            console.log(err);
+            console.error(err);
         }
     }
 

@@ -47,11 +47,10 @@ export const Payment = () => {
                 window.location.href = data.url;
 
             } else if (data.error) {
-                console.log("Stripe error", data.error);
                 throw new Error("Error creating Stripe session");
             }
         }catch(err){
-            console.log(err);
+            console.error(err);
         }
     }
 
@@ -73,11 +72,10 @@ export const Payment = () => {
 
                 window.location.href = data.url;
             }else if(data.error) {
-                console.log("Stripe error", data.error);
                 throw new Error("Error creating Stripe Portal session");
             }
         }catch(err){
-            console.log(err);
+            console.error(err);
         }
     }
 
@@ -91,7 +89,7 @@ export const Payment = () => {
                 </div>
                 <div className={"payment-section"}>
                     {Array.from(cardsMap.entries()).map(([key, value]) => (
-                        <div className={"payment-card"}>
+                        <div className={"payment-card"} key={key}>
                             <p>{key}</p>
                             <p>Price: {value.price}</p>
                             <p>Time: {value.length}</p>
