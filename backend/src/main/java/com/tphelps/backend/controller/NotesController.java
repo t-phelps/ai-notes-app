@@ -43,7 +43,7 @@ public class NotesController {
         this.customUserDetailsService = customUserDetailsService;
     }
 
-    @GetMapping("/fetch-graphed-notes")
+    @GetMapping("/fetch-clustered-notes")
     public ResponseEntity<Map<String, Set<String>>> fetchGraphedNotes(@AuthenticationPrincipal UserDetails userDetails){
         try{
 

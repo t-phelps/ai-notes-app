@@ -3,7 +3,6 @@ package com.tphelps.backend.config;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.autoconfigure.jooq.ExceptionTranslatorExecuteListener;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -75,7 +74,7 @@ public class SecurityConfig {
                                     "/stripe/create-checkout-session", "/stripe/create-portal-session",
                                     "/account/delete", "/account/change-password", "/account/user-details",
                                     "/notes/to-cloud", "/notes/generate-study-guide", "/notes/download-note/**",
-                                    "/notes/fetch-graphed-notes").authenticated()
+                                    "/notes/fetch-clustered-notes").authenticated()
                             .anyRequest().authenticated();
                 })
                 // disable default login forms

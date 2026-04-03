@@ -5,7 +5,7 @@ import com.tphelps.backend.service.pojos.NoteEdges;
 
 import java.util.*;
 
-public class GraphClusterer {
+public class NoteClusterer {
 
     /**
      * Method to cluster our edges list from the db

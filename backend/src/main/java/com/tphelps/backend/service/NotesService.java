@@ -4,7 +4,6 @@ import com.openai.client.OpenAIClient;
 import com.openai.client.okhttp.OpenAIOkHttpClient;
 import com.openai.models.chat.completions.StructuredChatCompletion;
 import com.openai.models.chat.completions.StructuredChatCompletionCreateParams;
-import com.tphelps.backend.controller.pojos.Steps;
 import com.tphelps.backend.controller.pojos.StudyGuide;
 import com.tphelps.backend.dtos.notes.SaveNotesRequest;
 import com.tphelps.backend.enums.NoteGraphingStatus;
@@ -24,7 +23,6 @@ import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.stereotype.Service;
 
 import java.io.File;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.util.*;
 
@@ -59,7 +57,7 @@ public class NotesService {
         // fetch all adjacency lists for user in db
         List<NoteEdges> edgesList = notesRepository.fetchNotesEdges(username);
 
-        return GraphClusterer.clusterEdges(edgesList);
+        return NoteClusterer.clusterEdges(edgesList);
     }
 
     /**
