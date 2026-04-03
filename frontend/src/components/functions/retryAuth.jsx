@@ -2,6 +2,10 @@ import BASE_URL from "../../config.js";
 
 let refreshPromise = null;
 
+const refreshOptions = {
+    method: "POST",
+    credentials: "include",
+}
 const retryAuth = async (url, options = {}) => {
     try {
         let response = await fetch(url, options);
@@ -10,14 +14,12 @@ const retryAuth = async (url, options = {}) => {
             return response;
         }
 
-        // If no refresh is currently happening, start one
         if (!refreshPromise) {
-            refreshPromise = fetch(`${BASE_URL}/auth/refresh`, {
-                method: "POST",
-                credentials: "include"
-            }).then(res => {
+            refreshPromise = fetch(`${BASE_URL}/auth/refresh`, refreshOptions)
+                .then(async (res) => {
                 if (!res.ok) {
-                    // TODO force logout
+                    await fetch(`${BASE_URL}/auth/logout`, refreshOptions);
+                    window.location.href = "/";
                     throw new Error("Refresh failed");
                 }
                 return res;
@@ -26,14 +28,11 @@ const retryAuth = async (url, options = {}) => {
             });
         }
 
-        // Wait for refresh to finish
         await refreshPromise;
 
-        // Retry original request
         return fetch(url, options);
 
     } catch (err) {
-        console.error("Request failed:", err.message);
         throw err;
     }
 };

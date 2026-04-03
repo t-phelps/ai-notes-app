@@ -66,14 +66,12 @@ export const Signup = () => {
             });
 
             const responseBody = await response.text();
-            console.log("Response body:", responseBody);
             if (!response.ok) throw new Error(responseBody);
 
-            console.log("Signup successful");
             navigate("/landing");
         }catch(error){
             setError(error.errors ? error.errors.join(", ") : "An unknown error occurred");
-            console.log(error);
+            console.error(error);
         }
     }
 

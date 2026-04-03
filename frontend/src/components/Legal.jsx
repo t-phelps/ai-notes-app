@@ -268,7 +268,7 @@ export const Legal = () => {
                             <div className="legal-contact-row">
                                 <span className="legal-contact-label">Email</span>
                                 {/* Replace with your actual support email */}
-                                <a>notesaicompany@gmail.com</a>
+                                <a href="mailto:notesaicompany@gmail.com">notesaicompany@gmail.com</a>
                             </div>
                             <div className="legal-contact-row">
                                 <span className="legal-contact-label">Response Time</span>
