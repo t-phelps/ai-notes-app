@@ -6,6 +6,8 @@ import { NavBar } from "./NavBar.jsx";
 import streamDownloadToFile from "./functions/StreamDownloadToFile";
 import retryAuth from "./functions/retryAuth";
 import moment from "moment";
+import BASE_URL from "../config.js";
+
 export const AccountPage = () => {
     const navigate = useNavigate();
 
@@ -49,9 +51,9 @@ export const AccountPage = () => {
                 };
 
                 // TODO this could be 1 query with a join instead of 2 DB calls
-                const purchaseHistory = await retryAuth("${BASE_URL}/account/purchase-history", options);
-                const userDetails = await retryAuth("${BASE_URL}/account/user-details", options);
-                const notes = await retryAuth("${BASE_URL}/notes/fetch-clustered-notes", options);
+                const purchaseHistory = await retryAuth(`${BASE_URL}/account/purchase-history`, options);
+                const userDetails = await retryAuth(`${BASE_URL}/account/user-details`, options);
+                const notes = await retryAuth(`${BASE_URL}/notes/fetch-clustered-notes`, options);
 
                 if(!purchaseHistory.ok || !userDetails.ok){
                     throw new Error("Fetching user info failed");
@@ -111,7 +113,7 @@ export const AccountPage = () => {
                     oldPassword,
                 }),
             };
-            const response = await retryAuth("${BASE_URL}/account/change-password", options);
+            const response = await retryAuth(`${BASE_URL}/account/change-password`, options);
 
             if (!response.ok) throw new Error("Failed to change password");
 
@@ -143,7 +145,7 @@ export const AccountPage = () => {
                     password: deletePassword,
                 }),
             }
-            const response = await retryAuth("${BASE_URL}/account/delete", options);
+            const response = await retryAuth(`${BASE_URL}/account/delete`, options);
 
             if (!response.ok) throw new Error("Failed to delete account");
 

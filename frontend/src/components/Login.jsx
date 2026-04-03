@@ -3,8 +3,8 @@ import * as yup from "yup";
 import { useNavigate } from "react-router-dom";
 import "../styles/LoginStyle.css";
 import "../styles/Global.css";
-import GoogleButton from 'react-google-button';
 import { Link } from "react-router-dom";
+import BASE_URL from "../config.js";
 
 
 export const LoginComponent = () => {
@@ -27,7 +27,7 @@ export const LoginComponent = () => {
         try {
             await schema.validate({username, password}); // throws error if not valid
 
-            const response = await fetch("${BASE_URL}/auth/login", {
+            const response = await fetch(`${BASE_URL}/auth/login`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
