@@ -142,39 +142,4 @@ public class NotesService {
             throw new UnauthorizedUserException("User subscription status is inactive");
         }
     }
-
-    /**
-     * Write study guide to file with specific formatting
-     * @param studyGuide - the study guide returned from openai api response
-     * @param title - title of their notes
-     * @return - file object containing their study guide
-     * @throws IllegalStateException
-     */
-    private File writeStudyGuideToFile(StudyGuide studyGuide, String title)throws IllegalStateException {
-        String tempDir = System.getProperty("java.io.tmpdir");
-        String fullPath = tempDir + File.separator + title + "StudyGuide.txt";
-        File file = new File(fullPath);
-
-        if(!file.exists() || !file.isFile()){
-            throw new  IllegalStateException("File does not exist or is not a file");
-        }
-
-        try(FileWriter fileWriter = new FileWriter(file)){
-            List<Steps> responses = studyGuide.questions();
-            for(int i = 0; i < studyGuide.questions().size(); i++){
-                fileWriter.write(
-                        String.format(
-                                "%d. %s\n    %c. %s\n",
-                                i + 1,
-                                responses.get(i).question(),
-                                'a',
-                                responses.get(i).answer()
-                        ));
-            }
-        }catch(IOException e){
-            throw new IllegalStateException("Error writing study guide to file");
-        }
-        return file;
-    }
-
 }

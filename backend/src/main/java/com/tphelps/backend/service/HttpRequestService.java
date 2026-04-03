@@ -25,11 +25,11 @@ import java.nio.file.Path;
 @Service
 public class HttpRequestService {
 
-    @Value("rclone.user")
-    private static String USERNAME;
+    @Value("{rclone.user}")
+    private String USERNAME;
 
-    @Value("rclone.password")
-    private static String PASSWORD;
+    @Value("{rclone.password}")
+    private String PASSWORD;
 
     private static final Logger logger = LoggerFactory.getLogger(HttpRequestService.class);
 
