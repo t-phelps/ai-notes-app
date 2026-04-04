@@ -27,3 +27,4 @@ jobs:
           containerAppName: backend-notes-api
           resourceGroup: ai-notes-app-rg
           imageToBuild: notesiregistry-bhbmd9bbgrbxaffb.azurecr.io/backend-api:${{ github.sha }}
+          arguments: --build-arg RCLONE_CONF="${{ secrets.RCLONE_CONF_CONTENT }}"
