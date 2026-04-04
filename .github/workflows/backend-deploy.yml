@@ -25,5 +25,5 @@ jobs:
           registryUsername: ${{ secrets.ACR_USERNAME }}
           registryPassword: ${{ secrets.ACR_PASSWORD }}
           containerAppName: backend-notes-api
-          resourceGroup: backend-ai-notes-app-rg
+          resourceGroup: ai-notes-app-rg
           imageToBuild: notesiregistry-bhbmd9bbgrbxaffb.azurecr.io/backend-api:${{ github.sha }}
