@@ -207,4 +207,5 @@ public class NotesController {
     private boolean validateNotes(SaveNotesRequest notes) {
         return notes.title().isEmpty() || notes.notes().isEmpty();
     }
+
 }
