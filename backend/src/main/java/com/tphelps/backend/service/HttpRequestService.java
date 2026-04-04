@@ -145,7 +145,7 @@ public class HttpRequestService {
         JSONObject jsonObject = new JSONObject();
         jsonObject.put("srcFs", tempFile.getParent());
         jsonObject.put("srcRemote", tempFile.getName());
-        jsonObject.put("dstFs", "gdrive:");
+        jsonObject.put("dstFs", "GDRIVE:");
         jsonObject.put("dstRemote", "/ai-notes/" + username + "/" + tempFile.getName());
 
         return jsonObject;
@@ -160,7 +160,7 @@ public class HttpRequestService {
      */
     private static JSONObject createJsonObjectForFetch(String path, String fileName) throws IOException {
         JSONObject jsonObject = new JSONObject();
-        jsonObject.put("srcFs", "gdrive:");
+        jsonObject.put("srcFs", "GDRIVE:");
         jsonObject.put("srcRemote", path);
         jsonObject.put("dstFs", "/tmp");
         jsonObject.put("dstRemote", fileName);
