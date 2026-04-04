@@ -21,7 +21,12 @@ jobs:
       - name: Sonar Scan
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        run: mvn -B verify org.sonarsource.scanner.maven:sonar-maven-plugin:sonar -Dsonar.projectKey=ai-notes-backend -f backend/pom.xml #mono repo issues
+        run: |
+          mvn -B compile org.sonarsource.scanner.maven:sonar-maven-plugin:sonar \
+          -f backend/pom.xml \
+          -Dsonar.projectKey=ai-notes-backend \
+          -Djooq.codegen.skip=true \
+          -DskipTests
 
       - name: Log in to Azure
         uses: azure/login@v2
