@@ -162,7 +162,7 @@ public class HttpRequestService {
         JSONObject jsonObject = new JSONObject();
         jsonObject.put("srcFs", "gdrive:");
         jsonObject.put("srcRemote", path);
-        jsonObject.put("dstFs", "tmp:");
+        jsonObject.put("dstFs", "/tmp");
         jsonObject.put("dstRemote", fileName);
 
         return jsonObject;
@@ -178,6 +178,10 @@ public class HttpRequestService {
         try (CloseableHttpClient httpClient = HttpClients.createDefault();
              CloseableHttpResponse response = httpClient.execute(post)) {
 
+            int statusCode = response.getStatusLine().getStatusCode();;
+            if(statusCode != 200){
+                throw new IOException("HTTP error code : " + statusCode);
+            }
             HttpEntity entity = response.getEntity();
 
             if (entity == null) {

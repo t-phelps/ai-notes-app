@@ -8,6 +8,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.scheduling.annotation.EnableScheduling;
 
+import java.io.File;
 import java.io.IOException;
 
 @SpringBootApplication
@@ -26,8 +27,9 @@ public class NotesApp {
             ProcessBuilder processBuilder = new ProcessBuilder(
                     "rclone", "rcd",
                     "--rc-no-auth",
-                    "--rc-addr", "127.0.0.1/5572"
+                    "--rc-addr", "127.0.0.1:5572"
             );
+            processBuilder.redirectOutput(new File("/tmp/rclone.log"));
             processBuilder.redirectErrorStream(true);
             processBuilder.start();
             logger.info("RCLone started");

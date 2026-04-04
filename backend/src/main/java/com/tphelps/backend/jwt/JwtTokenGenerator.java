@@ -18,7 +18,7 @@ import java.util.Date;
 public class JwtTokenGenerator {
 
     /**
-     * Jwt secret from application.properties
+     * Jwt secret from application-dev.properties
      */
     @Value("${jwt.secret}")
     private String jwtSecret;
