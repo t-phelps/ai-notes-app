@@ -30,6 +30,7 @@ import java.util.Map;
 public class StripePaymentController {
 
     private static final Logger logger =  LoggerFactory.getLogger(StripePaymentController.class);
+
     StripePaymentService stripePaymentService;
 
     @Autowired
