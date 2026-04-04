@@ -89,13 +89,7 @@ RUN apt-get update && \
 	curl https://rclone.org/install.sh | bash && \
 	apt-get clean
 
-RUN mkdir -p /app/rclone && chown appuser:appuser /app/rclone
 
-#COPY --chown=appuser:appuser rclone/rclone.conf /app/rclone/rclone.conf
-ARG RCLONE_CONF
-RUN echo "$RCLONE_CONF" > /app/rclone/rclone.conf && chown appuser:appuser /app/rclone/rclone.conf
-
-ENV RCLONE_CONFIG=/app/rclone/rclone.conf
 # Switch back to appuser
 USER appuser
 
