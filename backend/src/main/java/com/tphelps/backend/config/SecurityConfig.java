@@ -24,6 +24,7 @@ import java.util.List;
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
+
     private final JwtAuthEntryPoint jwtAuthEntryPoint;
 
     @Value("${front.end.url}")
