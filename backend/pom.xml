@@ -18,6 +18,8 @@
         <db.url>${env.DEV_DB_URL}</db.url>
         <db.user>${env.DB_USER}</db.user>
         <db.password>${env.DEV_DB_PASSWORD}</db.password>
+        <sonar.organization>t-phelps</sonar.organization>
+        <sonar.projectKey>ai-notes-backend</sonar.projectKey>
     </properties>
 
     <profiles>

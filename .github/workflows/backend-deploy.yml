@@ -12,6 +12,17 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
+      # before we do azure login so if this fails we don't waste time building
+      - name: Setup up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: 21
+          distribution: 'zulu'
+      - name: Sonar Scan
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        run: mvn -B verify org.sonarsource.scanner.maven:sonar-maven-plugin:sonar -Dsonar.projectKey=ai-notes-backend -f backend/pom.xml #mono repo issues
+
       - name: Log in to Azure
         uses: azure/login@v2
         with:
