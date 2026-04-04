@@ -21,7 +21,7 @@ jobs:
         uses: azure/container-apps-deploy-action@v1
         with:
           appSourcePath: ${{ github.workspace }}/backend
-          acrName: notesiregistry # not the login server
+          acrName: notesiregistry-bhbmd9bbgrbxaffb
           containerAppName: backend-notes-api
           resourceGroup: backend-ai-notes-app-rg
           imageToBuild: notesiregistry-bhbmd9bbgrbxaffb.azurecr.io/backend-api:${{ github.sha }}
