@@ -21,7 +21,9 @@ jobs:
         uses: azure/container-apps-deploy-action@v1
         with:
           appSourcePath: ${{ github.workspace }}/backend
-          acrName: notesiregistry-bhbmd9bbgrbxaffb
+          registryUrl: notesiregistry-bhbmd9bbgrbxaffb.azurecr.io
+          registryUsername: ${{ secrets.ACR_USERNAME }}
+          registryPassword: ${{ secrets.ACR_PASSWORD }}
           containerAppName: backend-notes-api
           resourceGroup: backend-ai-notes-app-rg
           imageToBuild: notesiregistry-bhbmd9bbgrbxaffb.azurecr.io/backend-api:${{ github.sha }}
