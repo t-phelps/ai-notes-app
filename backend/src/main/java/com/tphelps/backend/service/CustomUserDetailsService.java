@@ -233,7 +233,7 @@ public class CustomUserDetailsService implements UserDetailsService {
                 .httpOnly(true)
                 .path("/")
                 .maxAge(Duration.ofMinutes(15))
-                .sameSite("Strict")
+                .sameSite("None")
                 .secure(true)
                 .build();
     }
@@ -254,7 +254,7 @@ public class CustomUserDetailsService implements UserDetailsService {
                 .httpOnly(true)
                 .path("/")
                 .maxAge(Duration.ofMinutes(15))
-                .sameSite("Strict")
+                .sameSite("None")
                 .secure(true)
                 .build();
     }
@@ -272,7 +272,7 @@ public class CustomUserDetailsService implements UserDetailsService {
                 .httpOnly(true)
                 .path("/")
                 .maxAge(Duration.ofDays(7))
-                .sameSite("Strict")
+                .sameSite("None")
                 .secure(true)
                 .build();
     }
@@ -290,7 +290,7 @@ public class CustomUserDetailsService implements UserDetailsService {
                 .httpOnly(true)
                 .path("/")
                 .maxAge(Duration.ofDays(7))
-                .sameSite("Strict")
+                .sameSite("None")
                 .secure(true)
                 .build();
     }

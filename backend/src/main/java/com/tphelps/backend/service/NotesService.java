@@ -81,6 +81,7 @@ public class NotesService {
         }
         logger.trace("Saving user note path to database for user={} with path={}",
                 username, path);
+
         int noteId = notesRepository.saveNoteToDatabase(drive + path,
                 username,
                 notesRequest.title(),
@@ -115,6 +116,7 @@ public class NotesService {
                 .addUserMessage("Generate a study guide for the following notes: " + notes)
                 .model("gpt-4o-mini")
                 .responseFormat(StudyGuide.class)
+                .maxCompletionTokens(5000) // set a max on output tokens to prevent runaway responses / malicious input
                 .build();
 
         List<StructuredChatCompletion.Choice<StudyGuide>> results = client.chat().completions().create(params).choices();
@@ -136,7 +138,7 @@ public class NotesService {
     public void validateUsersSubscription(String username) throws UnauthorizedUserException {
         com.tphelps.backend.controller.pojos.SubscriptionData data = customUserDetailsService.getUserSubscriptionData(username);
 
-        if(!SubscriptionStatus.ACTIVE.getValue().equals(data.status()) || data.generations_left() <= 0) {
+        if(data.status() == null || !SubscriptionStatus.ACTIVE.getValue().equals(data.status()) || data.generations_left() <= 0) {
             throw new UnauthorizedUserException("User subscription status is inactive");
         }
     }

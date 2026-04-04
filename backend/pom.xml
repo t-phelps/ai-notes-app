@@ -6,29 +6,63 @@
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
         <version>3.5.7</version>
-        <relativePath/> <!-- lookup parent from repository -->
-    </parent>
+        <relativePath/> </parent>
     <groupId>com.loganalyzer</groupId>
     <artifactId>backend</artifactId>
     <version>0.0.1-SNAPSHOT</version>
     <name>backend</name>
     <description>Demo project for Spring Boot</description>
-    <url/>
-    <licenses>
-        <license/>
-    </licenses>
-    <developers>
-        <developer/>
-    </developers>
-    <scm>
-        <connection/>
-        <developerConnection/>
-        <tag/>
-        <url/>
-    </scm>
+
     <properties>
-        <java.version>17</java.version>
+        <java.version>21</java.version>
+        <db.url>${env.DEV_DB_URL}</db.url>
+        <db.user>${env.DB_USER}</db.user>
+        <db.password>${env.DEV_DB_PASSWORD}</db.password>
     </properties>
+
+    <profiles>
+        <profile>
+            <id>dev</id>
+            <properties>
+                <db.url>${env.DEV_DB_URL}</db.url>
+                <db.user>${env.DB_USER}</db.user>
+                <db.password>${env.DEV_DB_PASSWORD}</db.password>
+            </properties>
+        </profile>
+
+        <profile>
+            <id>prod</id>
+            <properties>
+                <db.url>${env.PROD_DB_URL}</db.url>
+                <db.user>${env.DB_USER}</db.user>
+                <db.password>${env.PROD_DB_PASSWORD}</db.password>
+            </properties>
+        </profile>
+
+        <!-- Docker build profile -->
+        <profile>
+            <id>docker</id>
+            <properties>
+                <!-- Use prod DB for Docker image build -->
+                <db.url>${env.PROD_DB_URL}</db.url>
+                <db.user>${env.DB_USER}</db.user>
+                <db.password>${env.PROD_DB_PASSWORD}</db.password>
+            </properties>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.jooq</groupId>
+                        <artifactId>jooq-codegen-maven</artifactId>
+                        <configuration>
+                            <!-- Skip code generation in Docker build -->
+                            <skip>true</skip>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
+
     <build>
         <plugins>
             <plugin>
@@ -36,19 +70,19 @@
                 <artifactId>flyway-maven-plugin</artifactId>
                 <version>11.7.2</version>
                 <configuration>
-                    <url>jdbc:postgresql://localhost:5434/mydb</url>
-                    <user>${env.DB_USER}</user>
-                    <password>${env.DB_PASSWORD}</password>
+                    <url>${db.url}</url>
+                    <user>${db.user}</user>
+                    <password>${db.password}</password>
                     <locations>
                         <location>filesystem:src/main/resources/db/migration</location>
                     </locations>
                 </configuration>
             </plugin>
-            <!-- jOOQ Code Generation -->
+
             <plugin>
                 <groupId>org.jooq</groupId>
                 <artifactId>jooq-codegen-maven</artifactId>
-                <version>3.20.8</version> <!-- need this specific version to generate tables -->
+                <version>3.20.8</version>
                 <executions>
                     <execution>
                         <id>generate-jooq</id>
@@ -61,15 +95,15 @@
                 <configuration>
                     <jdbc>
                         <driver>org.postgresql.Driver</driver>
-                        <url>jdbc:postgresql://localhost:5434/mydb</url>
-                        <user>${env.DB_USER}</user>
-                        <password>${env.DB_PASSWORD}</password>
+                        <url>${db.url}</url>
+                        <user>${db.user}</user>
+                        <password>${db.password}</password>
                     </jdbc>
                     <generator>
                         <name>org.jooq.codegen.JavaGenerator</name>
                         <database>
                             <name>org.jooq.meta.postgres.PostgresDatabase</name>
-                            <includes>.*</includes> <!-- lowercase table name -->
+                            <includes>.*</includes>
                             <excludes>flyway_schema_history</excludes>
                             <schemata>
                                 <schema>
@@ -80,18 +114,17 @@
                         <generate>
                             <pojos>true</pojos>
                             <records>true</records>
-                            <tables>true</tables>      <!-- ensure Table class is generated -->
+                            <tables>true</tables>
                             <javaTimeTypes>true</javaTimeTypes>
                         </generate>
                         <target>
                             <packageName>test.generated</packageName>
-                            <directory>${project.build.directory}/generated-sources/jooq</directory>
+                            <directory>src/main/java/test/generated</directory>
                         </target>
                     </generator>
                 </configuration>
             </plugin>
 
-            <!-- Add generated sources to Maven compilation -->
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>build-helper-maven-plugin</artifactId>
@@ -111,48 +144,50 @@
                     </execution>
                 </executions>
             </plugin>
+                    <!-- Spring Boot plugin for executable jar -->
+                    <plugin>
+                        <groupId>org.springframework.boot</groupId>
+                        <artifactId>spring-boot-maven-plugin</artifactId>
+                        <version>3.5.7</version> <!-- match your Spring Boot version -->
+                        <executions>
+                            <execution>
+                                <goals>
+                                    <goal>repackage</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
         </plugins>
     </build>
 
-
     <dependencies>
-        <!-- JUnit 5 (Jupiter) -->
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter</artifactId>
             <version>5.10.2</version>
             <scope>test</scope>
         </dependency>
-
-        <!-- Stripe -->
         <dependency>
             <groupId>com.stripe</groupId>
             <artifactId>stripe-java</artifactId>
             <version>30.2.0</version>
         </dependency>
-        <!-- Spark to be used in stripe class -->
         <dependency>
             <groupId>com.sparkjava</groupId>
             <artifactId>spark-core</artifactId>
             <version>2.9.4</version>
         </dependency>
-
-        <!-- https://mvnrepository.com/artifact/com.google.code.gson/gson -->
         <dependency>
             <groupId>com.google.code.gson</groupId>
             <artifactId>gson</artifactId>
             <version>2.13.0</version>
         </dependency>
-
-        <!-- Mockito Core -->
         <dependency>
             <groupId>org.mockito</groupId>
             <artifactId>mockito-core</artifactId>
             <version>5.11.0</version>
             <scope>test</scope>
         </dependency>
-
-        <!-- Mockito + JUnit 5 integration -->
         <dependency>
             <groupId>org.mockito</groupId>
             <artifactId>mockito-junit-jupiter</artifactId>
@@ -163,34 +198,26 @@
             <groupId>org.flywaydb</groupId>
             <artifactId>flyway-database-postgresql</artifactId>
         </dependency>
-
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-security</artifactId>
         </dependency>
-
         <dependency>
             <groupId>org.mindrot</groupId>
             <artifactId>jbcrypt</artifactId>
             <version>0.4</version>
         </dependency>
-
-        <!-- JJWT API -->
         <dependency>
             <groupId>io.jsonwebtoken</groupId>
             <artifactId>jjwt-api</artifactId>
             <version>0.11.5</version>
         </dependency>
-
-        <!-- JJWT Implementation (runtime) -->
         <dependency>
             <groupId>io.jsonwebtoken</groupId>
             <artifactId>jjwt-impl</artifactId>
             <version>0.11.5</version>
             <scope>runtime</scope>
         </dependency>
-
-        <!-- JJWT Jackson integration (for JSON claims) -->
         <dependency>
             <groupId>io.jsonwebtoken</groupId>
             <artifactId>jjwt-jackson</artifactId>
@@ -206,14 +233,11 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-jooq</artifactId>
         </dependency>
-
         <dependency>
             <groupId>org.jooq</groupId>
             <artifactId>jooq</artifactId>
             <version>3.20.8</version>
         </dependency>
-
-        <!-- These may not be required, unless you use the GenerationTool manually for code generation -->
         <dependency>
             <groupId>org.jooq</groupId>
             <artifactId>jooq-meta</artifactId>
@@ -224,12 +248,10 @@
             <artifactId>jooq-codegen</artifactId>
             <version>3.20.8</version>
         </dependency>
-
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
-
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-devtools</artifactId>
@@ -250,8 +272,6 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-actuator</artifactId>
         </dependency>
-
-        <!-- https://mvnrepository.com/artifact/org.apache.httpcomponents/httpclient -->
         <dependency>
             <groupId>org.apache.httpcomponents</groupId>
             <artifactId>httpclient</artifactId>
@@ -262,20 +282,16 @@
             <artifactId>openai-java</artifactId>
             <version>4.9.0</version>
         </dependency>
-
         <dependency>
             <groupId>com.openai</groupId>
             <artifactId>openai-java-spring-boot-starter</artifactId>
             <version>4.9.0</version>
         </dependency>
-
-        <!-- Spring Mail-->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-mail</artifactId>
             <version>3.5.7</version>
         </dependency>
     </dependencies>
-
 </project>
 

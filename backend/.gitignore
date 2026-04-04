@@ -4,6 +4,16 @@ target/
 !**/src/main/**/target/
 !**/src/test/**/target/
 
+# Env files with secrets
+*.env
+notes-app.env
+
+# Local build artifacts
+/node_modules
+/build
+/.swa
+rclone/
+
 ### STS ###
 .apt_generated
 .classpath
