@@ -10,6 +10,7 @@ import com.tphelps.backend.service.CustomUserDetailsService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseCookie;
@@ -45,8 +46,13 @@ public class AccountController {
     public ResponseEntity<?> changePassword(
             @RequestBody ChangePasswordRequest changePasswordRequest,
             @AuthenticationPrincipal UserDetails userDetails) {
+
+        if(isInvalidChangePasswordRequest(changePasswordRequest)){
+            logger.error("Invalid change password request for user={}", userDetails.getUsername());
+            return ResponseEntity.badRequest().build();
+        }
         try {
-            logger.trace("Changing password for user={} at UTC time={}",
+            logger.info("Changing password for user={} at UTC time={}",
                     userDetails.getUsername(), Instant.now());
             // this has the browser delete the cookie when sent back
             // this does NOT invalidate the cookie that is being deleted by the browser
@@ -65,9 +71,12 @@ public class AccountController {
 
             return ResponseEntity.ok().headers(headers).build();
 
-        } catch (IllegalArgumentException | UsernameNotFoundException e) {
-            logger.error("Password change failed for user={}", userDetails.getUsername());
-            return ResponseEntity.badRequest().build();
+        } catch (UsernameNotFoundException e) {
+            logger.error("Password change failed, user not found in database, for user={}", userDetails.getUsername());
+            return ResponseEntity.internalServerError().build(); // internal server error because this is from the account page so user should exist
+        } catch(EmptyResultDataAccessException e){
+            logger.error("Password change failed for user={} with exception={}", userDetails.getUsername(), e.getMessage());
+            return  ResponseEntity.internalServerError().build();
         }
     }
 
@@ -79,17 +88,19 @@ public class AccountController {
     @PostMapping("/reset-password")
     public ResponseEntity<?> resetPassword(@RequestBody PasswordResetRequest passwordResetRequest) {
         try{
-
             if(isInvalidPasswordResetRequest(passwordResetRequest)){
+                logger.error("Invalid password reset request object received by the controller");
                 return ResponseEntity.badRequest().build();
             }
-            logger.trace("Password reset request for user with trace UUID={} at UTC time={}",
+            logger.info("Password reset request for user with trace UUID={} at UTC time={}",
                     passwordResetRequest.uuid(), Instant.now());
             customUserDetailsService.resetPassword(passwordResetRequest.password(), passwordResetRequest.uuid());
 
             return ResponseEntity.ok().build();
-        }catch(Exception e){
-            logger.error("Failed password reset request for user with trace UUID={}", passwordResetRequest.uuid());
+        }catch(IllegalArgumentException e){
+            logger.error("Failed password reset request for user with trace UUID={} and exception={}",
+                    passwordResetRequest.uuid(),
+                    e.getMessage());
             return ResponseEntity.internalServerError().build();
         }
     }
@@ -104,8 +115,12 @@ public class AccountController {
     public ResponseEntity<?> delete(
             @RequestBody DeleteAccountRequest deleteAccountRequest,
             @AuthenticationPrincipal UserDetails userDetails) {
+        if(isInvalidDeleteAccountRequest(deleteAccountRequest)){
+            logger.error("Invalid delete account request for user={}", userDetails.getUsername());
+            return ResponseEntity.badRequest().build();
+        }
         try {
-            logger.trace("Account deletion request initiated for user={} at UTC time={}",
+            logger.info("Account deletion request initiated for user={} at UTC time={}",
                     userDetails.getUsername(), Instant.now());
 
             String password = deleteAccountRequest.password();
@@ -128,10 +143,10 @@ public class AccountController {
             return ResponseEntity.ok()
                     .headers(headers)
                     .body("Account deleted successfully");
-        } catch (IllegalArgumentException e) {
+        } catch (EmptyResultDataAccessException e) {
             logger.error("Account deletion failed for user={} with exception message={}",
                     userDetails.getUsername(), e.getMessage());
-            return ResponseEntity.badRequest().build();
+            return ResponseEntity.internalServerError().build();
         }
     }
 
@@ -142,8 +157,16 @@ public class AccountController {
      */
     @GetMapping("/user-details")
     public ResponseEntity<UserDetailsResponseDto> getUserDetails(@AuthenticationPrincipal UserDetails userDetails) {
-        UserDetailsResponseDto userDetailsResponseDto = customUserDetailsService.getUserHistory(userDetails.getUsername());
-        return ResponseEntity.ok().body(userDetailsResponseDto);
+        try {
+            logger.trace("Fetching user details for user={}", userDetails.getUsername());
+            UserDetailsResponseDto userDetailsResponseDto = customUserDetailsService.getUserHistory(userDetails.getUsername());
+            return ResponseEntity.ok().body(userDetailsResponseDto);
+        }catch(EmptyResultDataAccessException e){
+            logger.error("Excpetion occurred while fetching user details for user={} with exception={}",
+                    userDetails.getUsername(),
+                    e.getMessage());
+            return ResponseEntity.internalServerError().build();
+        }
     }
 
     /**
@@ -152,12 +175,12 @@ public class AccountController {
      * @return - a {@link PurchaseHistoryResponseDto} containing the period for subscription and the status
      */
     @GetMapping("/purchase-history")
-    public ResponseEntity<?> getPurchaseHistory(@AuthenticationPrincipal UserDetails userDetails) {
-        List<PurchaseHistoryResponseDto> purchaseHistoryResponseList = customUserDetailsService.getUserPurchaseHistory(userDetails.getUsername());
-        if (purchaseHistoryResponseList != null) {
-            return ResponseEntity.ok().body(purchaseHistoryResponseList);
-        }
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+    public ResponseEntity<List<PurchaseHistoryResponseDto>> getPurchaseHistory(@AuthenticationPrincipal UserDetails userDetails) {
+        logger.trace("Fetching user purchase history for user={}", userDetails.getUsername());
+        List<PurchaseHistoryResponseDto> purchaseHistoryResponseList =
+                customUserDetailsService.getUserPurchaseHistory(userDetails.getUsername());
+
+        return  ResponseEntity.ok().body(purchaseHistoryResponseList);
     }
 
     /**
@@ -170,5 +193,17 @@ public class AccountController {
                 || passwordResetRequest.password().isEmpty()
                 || passwordResetRequest.uuid() == null
                 || passwordResetRequest.uuid().toString().isEmpty();
+    }
+
+    private boolean isInvalidChangePasswordRequest(ChangePasswordRequest changePasswordRequest) {
+        return changePasswordRequest.newPassword() == null
+                || changePasswordRequest.newPassword().isEmpty()
+                ||  changePasswordRequest.oldPassword() == null
+                || changePasswordRequest.oldPassword().isEmpty();
+    }
+
+    private boolean isInvalidDeleteAccountRequest(DeleteAccountRequest deleteAccountRequest) {
+        return deleteAccountRequest.password() == null
+                || deleteAccountRequest.password().isEmpty();
     }
 }
