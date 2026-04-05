@@ -44,6 +44,8 @@ jobs:
             -Dsonar.projectKey=ai-notes-frontend
             -Dsonar.organization=t-phelps
             -Dsonar.sources=src
+            -Dsonar.tests=
+            -Dsonar.coverage.exclusions=**/*.js,**/*.jsx,**/*.css,**/*.html
 
       - name: Build and Deploy
         uses: Azure/static-web-apps-deploy@v1
