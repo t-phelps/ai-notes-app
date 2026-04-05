@@ -99,7 +99,8 @@ public class CustomUserDetailsService implements UserDetailsService {
      * @param oldPassword - users old password
      * @param newPassword - users new password
      */
-    public void changePassword(UserDetails principal, String oldPassword, String newPassword) throws UsernameNotFoundException {
+    public void changePassword(UserDetails principal, String oldPassword, String newPassword)
+            throws UsernameNotFoundException, EmptyResultDataAccessException{
 
         String username = verifyPassword(principal, oldPassword);
         String encodedPassword =  passwordEncoder.encode(newPassword);
@@ -194,20 +195,46 @@ public class CustomUserDetailsService implements UserDetailsService {
      * @param username - the user to fetch info for
      * @return - a populated {@link UserDetailsResponseDto} object
      */
-    public UserDetailsResponseDto getUserHistory(String username) {
-       return accountRepository.getUserInfo(username);
+    public UserDetailsResponseDto getUserHistory(String username) throws EmptyResultDataAccessException{
+       UserDetailsResponseDto userDetailsResponseDto =  accountRepository.getUserInfo(username);
+       if(userDetailsResponseDto == null){
+           throw new EmptyResultDataAccessException(1);
+       }
+
+       return userDetailsResponseDto;
     }
 
 
-
+    /**
+     * Fetch a user purchase history
+     *
+     * Will never return null, jooq will map this to an empty list
+     * @param username
+     * @return a {@link PurchaseHistoryResponseDto}
+     */
     public List<PurchaseHistoryResponseDto> getUserPurchaseHistory(String username) {
         return accountRepository.getPurchaseHistory(username);
     }
 
-    public SubscriptionData getUserSubscriptionData(String username){
-        return accountRepository.getSubscriptionStatus(username);
+    /**
+     * Get user subscription data from the database
+     * @param username
+     * @return - a {@link SubscriptionData}
+     * @throws EmptyResultDataAccessException - if jooq doesn't find a row
+     */
+    public SubscriptionData getUserSubscriptionData(String username) throws EmptyResultDataAccessException{
+        SubscriptionData subscriptionData = accountRepository.getSubscriptionStatus(username);
+        if(subscriptionData == null){
+            throw new EmptyResultDataAccessException(1);
+        }
+        return subscriptionData;
     }
 
+    /**
+     * Decrement the amount of generations a user has left for AI feature
+     * @param username
+     * @param deduction - 1
+     */
     public void decrementUserGenerationsLeft(String username, int deduction){
         accountRepository.decrementUserGenerationsLeft(username, deduction);
     }

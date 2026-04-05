@@ -34,14 +34,14 @@ public class AccountRepository {
      * @param hashedPassword - the new password
      * @throws IllegalArgumentException - if user not found
      */
-    public void changePassword(String username, String hashedPassword) throws IllegalArgumentException {
+    public void changePassword(String username, String hashedPassword) throws EmptyResultDataAccessException {
         int rowsAffected = dslContext.update(USERS)
                 .set(USERS.PASSWORD, hashedPassword)
                 .where(USERS.USERNAME.eq(username))
                 .execute();
 
         if (rowsAffected == 0) {
-            throw new IllegalArgumentException("User not found");
+            throw new EmptyResultDataAccessException(1);
         }
     }
 
@@ -65,15 +65,15 @@ public class AccountRepository {
     /**
      * Delete a user from the db
      * @param username - user to delete
-     * @throws IllegalArgumentException - if user not found
+     * @throws EmptyResultDataAccessException - if user not found
      */
-    public void deleteAccount(String username) throws IllegalArgumentException {
+    public void deleteAccount(String username) throws EmptyResultDataAccessException {
         int rowsAffected = dslContext.deleteFrom(USERS)
                 .where(USERS.USERNAME.eq(username))
                 .execute();
 
         if (rowsAffected == 0) {
-            throw new IllegalArgumentException("User not found");
+            throw new EmptyResultDataAccessException(1);
         }
     }
 
@@ -84,16 +84,11 @@ public class AccountRepository {
      * @return - a single {@link UserDetailsResponseDto}
      */
     public UserDetailsResponseDto getUserInfo(String username){
-
-        var row = dslContext
-                .select(USERS.USERNAME, USERS.EMAIL)
+        return dslContext
+                .select(USERS.EMAIL, USERS.USERNAME)
                 .from(USERS)
                 .where(USERS.USERNAME.eq(username))
-                .fetchOne();
-
-        return new UserDetailsResponseDto(
-                row.get(USERS.EMAIL),
-                row.get(USERS.USERNAME));
+                .fetchOneInto(UserDetailsResponseDto.class);
     }
 
     /**
