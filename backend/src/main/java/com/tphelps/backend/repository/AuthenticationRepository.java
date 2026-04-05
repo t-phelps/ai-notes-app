@@ -2,6 +2,7 @@ package com.tphelps.backend.repository;
 
 import com.tphelps.backend.dtos.MyUserDetails;
 import org.jooq.DSLContext;
+import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.stereotype.Repository;
 
 import static test.generated.tables.Users.USERS;
@@ -22,13 +23,17 @@ public class AuthenticationRepository {
                 .fetchOneInto(MyUserDetails.class);
     }
 
-    public void createUser(Users user){
-        dsl.insertInto(USERS)
+    public void createUser(Users user) throws EmptyResultDataAccessException {
+        int rowsAffected = dsl.insertInto(USERS)
                 .set(USERS.USERNAME, user.getUsername())
                 .set(USERS.EMAIL, user.getEmail())
                 .set(USERS.PASSWORD, user.getPassword())
                 .set(USERS.ROLE, user.getRole())
                 .set(USERS.STRIPE_CUSTOMER_ID, user.getStripeCustomerId())
                 .execute();
+
+        if(rowsAffected == 0){
+            throw new EmptyResultDataAccessException(1);
+        }
     }
 }
