@@ -1,9 +1,10 @@
-import "../styles/SignupStyle.css";
+import "../styles/Global.css";
 import {useState} from "react";
 import * as yup from "yup";
 import {Link} from "react-router-dom";
 import {useNavigate} from "react-router-dom";
 import BASE_URL from "../config.js";
+import {Eye} from "lucide-react";
 
 export const Signup = () => {
     const navigate = useNavigate();
@@ -12,6 +13,12 @@ export const Signup = () => {
     const [password, setPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
     const [error, setError] = useState("");
+    const [loading, setLoading] = useState(false);
+    const [isVisible, setVisible] = useState(false);
+
+    const toggleVisibility = () => {
+        setVisible(!isVisible);
+    }
 
     // define our schema on the fields within our form
     const schema = yup.object().shape({
@@ -40,14 +47,13 @@ export const Signup = () => {
             .required(),
     });
 
-
     /**
      * Handle signup with an api call to backend service
      * @returns {Promise<void>}
      */
     const handleSignup = async (e) => {
         e.preventDefault();
-        setError("");
+        setLoading(true);
         try{
             // validate schema from yup
             await schema.validate({username, email, password, confirmPassword});
@@ -65,40 +71,92 @@ export const Signup = () => {
                 credentials: "include" // include credentials to get a jwt
             });
 
-            const responseBody = await response.text();
-            if (!response.ok) throw new Error(responseBody);
+            if (!response.ok) {
+                const msg = response.status === 400
+                ? "Invalid Request Body"
+                    : response.status === 500
+                ? "Server Error"
+                        : "Something went wrong. Try Again!";
+                setError(msg);
+            }
 
             navigate("/landing");
-        }catch(error){
-            setError(error.errors ? error.errors.join(", ") : "An unknown error occurred");
-            console.error(error);
+        }catch(err){
+            if(err.name === "ValidationError") {
+                setError(err.message);
+            }else{
+                console.error(err);
+            }
+        }finally {
+            setLoading(false);
         }
     }
 
-    return(
-        <div className="signup-container">
-            <div className="signup-box">
-                <h2>Welcome to Notes-AI</h2>
-                <form className="signup-form" onSubmit={handleSignup}>
-                    {error && <p className="error">{error}</p>}
-                    <label className={"signup-label"} id={"email"}>Email:</label>
-                    <input className={"signup-input"} type={"text"} id={"email"} placeholder={"Email address"} onChange={(e) => setEmail(e.target.value)} />
+    return (
+        <div className="regular-container">
+            <form className="regular-form" onSubmit={handleSignup}>
+                <h2>Register Here</h2>
 
-                    <label className={"signup-label"} id={"username"}>Username:</label>
-                    <input className={"signup-input"} type={"text"} id={"username"} placeholder={"Username"} onChange={(e) => setUsername(e.target.value)} />
+                {error && <div className="error-message">{error}</div>}
 
-                    <label className={"signup-label"} id={"password"}>Password:</label>
-                    <input className={"signup-input"} type={"password"} id={"password"} placeholder={"Password"} onChange={(e) => setPassword(e.target.value)} />
+                <label className="regular-label" htmlFor="email">Email:</label>
+                <input className="regular-input"
+                       type="text"
+                       id="email"
+                       placeholder="Email address"
+                       onChange={(e) => setEmail(e.target.value)} />
 
-                    <label className={"signup-label"} id={"confirm-password"}>Confirm Password:</label>
-                    <input className={"signup-input"} type={"password"} id={"confirm-password"} placeholder={"Confirm Password"} onChange={(e) => setConfirmPassword(e.target.value)} />
+                <label className="regular-label" htmlFor="username">Username:</label>
+                <input className="regular-input"
+                       type="text"
+                       id="username"
+                       placeholder="Username"
+                       onChange={(e) => setUsername(e.target.value)} />
 
-                    <div className={"signup-button"}><button type="submit">Submit</button></div>
-                </form>
-                <div>
-                    <p>Already have an account? <Link to={"/"}>Login!</Link></p>
+                <label className="regular-label" htmlFor="password">Password:</label>
+                <div className="password-inline">
+                    <input className="regular-input"
+                           type={isVisible ? "text" : "password"}
+                           id="password"
+                           placeholder="Password"
+                           onChange={(e) => {
+                               setPassword(e.target.value);
+                               setError("");
+                           }} />
+                    <button type={"button"}
+                            onClick={toggleVisibility}
+                            className={"password-inline-button"}>
+                        <Eye />
+                    </button>
                 </div>
-            </div>
+
+                <label className="regular-label" htmlFor="confirm-password">Confirm Password:</label>
+                <div className="password-inline">
+                    <input className="regular-input"
+                           type={isVisible ? "text" : "password"}
+                           id="confirm-password"
+                           placeholder="Confirm Password"
+                           onChange={(e) => {
+                               setConfirmPassword(e.target.value);
+                               setError("");
+                           }} />
+                    <button type={"button"}
+                            onClick={toggleVisibility}
+                            className={"password-inline-button"}>
+                        <Eye />
+                    </button>
+                </div>
+
+                <button
+                    className="regular-button"
+                    type="submit"
+                    disabled={loading}
+                >
+                    {loading ? "Submitting..." : "Submit"}
+                </button>
+
+                <p>Already have an account? <Link to="/">Login!</Link></p>
+            </form>
         </div>
     );
 }
