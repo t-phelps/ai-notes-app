@@ -200,7 +200,6 @@ export const AccountPage = () => {
                 </div>
             );
         }
-
         return elements;
     }
 
