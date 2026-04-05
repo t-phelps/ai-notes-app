@@ -48,12 +48,19 @@ export const LoginComponent = () => {
             });
 
            if(!response.ok) {
-                const msg = response.status === 401
-                    ? "Invalid Credentials"
-                    : response.status === 500
-                    ? "Server Error" : `Unexpected Error: ${response.status}`;
-                setError(msg);
-                return;
+               let msg;
+               switch(response.status){
+                   case 401:
+                       msg = "Invalid Credentials";
+                       break;
+                   case 500:
+                       msg = "Server Error";
+                       break;
+                   default:
+                       msg = "Something went wrong. Try Again!"
+               }
+               setError(msg);
+               return;
            }
 
             navigate("/landing");

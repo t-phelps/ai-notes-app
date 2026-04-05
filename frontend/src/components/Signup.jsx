@@ -72,12 +72,19 @@ export const Signup = () => {
             });
 
             if (!response.ok) {
-                const msg = response.status === 400
-                ? "Invalid Request Body"
-                    : response.status === 500
-                ? "Server Error"
-                        : "Something went wrong. Try Again!";
+                let msg;
+                switch (response.status) {
+                    case 400:
+                        msg = "Invalid Request Body";
+                        break;
+                    case 500:
+                        msg = "Server Error";
+                        break;
+                    default:
+                        msg = "Something went wrong. Try Again!";
+                }
                 setError(msg);
+                return;
             }
 
             navigate("/landing");
