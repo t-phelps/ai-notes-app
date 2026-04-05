@@ -5,6 +5,7 @@ import com.tphelps.backend.controller.exceptions.IllegalRefreshTokenException;
 import com.tphelps.backend.service.CustomUserDetailsService;
 import com.tphelps.backend.dtos.CreateAccountRequest;
 import com.tphelps.backend.dtos.LoginRequest;
+import io.jsonwebtoken.JwtException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,6 +15,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.Instant;
@@ -62,9 +64,12 @@ public class AuthenticationController {
             return ResponseEntity.ok()
                     .headers(headers)
                     .body("User logged in successfully");
-        }catch(Exception e){
+        }catch(AuthenticationException e){
             logger.error("Login failed for user={} with exception message={}", loginRequest.username(), e.getMessage());
-            return ResponseEntity.internalServerError().body("Failed login: " + e.getMessage());
+            return ResponseEntity.status(401).body("Failed login: " + e.getMessage());
+        }catch(JwtException e){
+            logger.error("JWT Exception occurred for user={} with exception message={}", loginRequest.username(), e.getMessage());
+            return ResponseEntity.status(500).body("Failed login: " + e.getMessage());
         }
     }
 
@@ -81,25 +86,18 @@ public class AuthenticationController {
             return ResponseEntity.badRequest().body("Failed To Create Account: A field within the request is empty");
         }
 
-        try{
-            logger.info("Initiating create account request for username={}", request.username());
-            Optional<List<ResponseCookie>> responseCookieList = customUserDetailsService.createUser(request);
+        logger.info("Initiating create account request for username={}", request.username());
+        Optional<List<ResponseCookie>> responseCookieList = customUserDetailsService.createUser(request);
 
-            if(responseCookieList.isEmpty()){
-                logger.error("Failed to generate cookies for user account with username={}", request.username());
-                return ResponseEntity.internalServerError().body("Failed To Generate Cookies While Creating Account");
-            }
-
-            HttpHeaders headers = buildHttpHeaders(responseCookieList.get().get(0), responseCookieList.get().get(1));
-
-            return ResponseEntity.ok()
-                    .headers(headers)
-                    .body("Account created successfully");
-        }catch(Exception e){
-            logger.error("Exception occurred during create account request for username={} with exception message={}",
-                    request.username(), e.getMessage());
-            return ResponseEntity.internalServerError().body("Failed To Create Account");
+        if(responseCookieList.isEmpty()){
+            logger.error("Failed to generate cookies for user account with username={}", request.username());
+            return ResponseEntity.internalServerError().body("Failed To Generate Cookies While Creating Account");
         }
+
+        HttpHeaders headers = buildHttpHeaders(responseCookieList.get().get(0), responseCookieList.get().get(1));
+        return ResponseEntity.ok()
+                .headers(headers)
+                .body("Account created successfully");
     }
 
     /**
@@ -140,10 +138,9 @@ public class AuthenticationController {
             logger.error("Illegal refresh token exception occurred during session refreshment with exception message={}",
                     e.getMessage());
             return ResponseEntity.badRequest().body("Invalid Refresh Token");
-        }
-        catch(Exception e){
-            logger.error("Exception occurred during session refreshment with exception message={}", e.getMessage());
-            return ResponseEntity.internalServerError().body("Failed To Refresh Access Token");
+        }catch(JwtException | IllegalArgumentException e){
+            logger.error("JWT Exception occurred with exception message={}", e.getMessage());
+            return ResponseEntity.status(500).body("Failed login: " + e.getMessage());
         }
     }
 

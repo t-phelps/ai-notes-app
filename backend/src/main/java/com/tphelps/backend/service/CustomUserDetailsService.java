@@ -1,5 +1,6 @@
 package com.tphelps.backend.service;
 
+import com.stripe.exception.StripeException;
 import com.stripe.model.Customer;
 import com.stripe.param.CustomerCreateParams;
 import com.tphelps.backend.controller.exceptions.IllegalRefreshTokenException;
@@ -12,11 +13,15 @@ import com.tphelps.backend.jwt.JwtTokenGenerator;
 import com.tphelps.backend.repository.AuthenticationRepository;
 import com.tphelps.backend.dtos.CreateAccountRequest;
 
+import io.jsonwebtoken.JwtException;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.jooq.DSLContext;
 import org.jooq.impl.DSL;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.http.ResponseCookie;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -33,12 +38,15 @@ import test.generated.tables.pojos.Users;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
 @Service
 public class CustomUserDetailsService implements UserDetailsService {
+
+    private static final Logger logger = LoggerFactory.getLogger(CustomUserDetailsService.class);
 
     private final AuthenticationRepository authenticationRepository;
     private final PasswordEncoder passwordEncoder;
@@ -170,8 +178,11 @@ public class CustomUserDetailsService implements UserDetailsService {
             authenticationRepository.createUser(new Users(
                     null, email, username, hashedPassword, role, LocalDateTime.now(), customer.getId()));
 
-        }catch(Exception e) {
-            e.printStackTrace();
+        }catch(StripeException e) {
+            logger.error("Stripe Exception occurred while creating a customer object for username={} in the CreateUser request", username);
+            return Optional.empty();
+        }catch(EmptyResultDataAccessException e){
+            logger.error("Exception occurred while creating a user in the database for username={}", username);
             return Optional.empty();
         }
 
@@ -223,7 +234,7 @@ public class CustomUserDetailsService implements UserDetailsService {
      * @param principal - the username
      * @return - a response cookie for user, else jwt exception
      */
-    public ResponseCookie generateUserCookie(Object principal) {
+    public ResponseCookie generateUserCookie(Object principal) throws JwtException {
         String username = principal.toString();
 
         String access_token = jwtTokenGenerator.getJwt(username);
@@ -282,7 +293,7 @@ public class CustomUserDetailsService implements UserDetailsService {
      * @param principal - the principle object containing details about the authenticated user
      * @return a response cookie containing the refresh token
      */
-    public ResponseCookie generateRefreshToken(Object principal) {
+    public ResponseCookie generateRefreshToken(Object principal) throws JwtException {
         String username = principal.toString();
         String jws = jwtTokenGenerator.getRefreshToken(username);
 
