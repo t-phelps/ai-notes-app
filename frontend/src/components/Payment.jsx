@@ -85,7 +85,7 @@ export const Payment = () => {
             <div className={"payment-container"}>
                 <div className={"payment-edit"}>
                     <h2>Edit your subscription</h2>
-                    <button onClick={handleEditSubscription}>Edit</button>
+                    <button className={"regular-button"} onClick={handleEditSubscription}>Edit</button>
                 </div>
                 <div className={"payment-section"}>
                     {Array.from(cardsMap.entries()).map(([key, value]) => (
@@ -93,7 +93,9 @@ export const Payment = () => {
                             <p>{key}</p>
                             <p>Price: {value.price}</p>
                             <p>Time: {value.length}</p>
-                            <button onClick={() => handleCreateSession(value.lookup_key)}>
+                            <button
+                                className={"regular-button"}
+                                onClick={() => handleCreateSession(value.lookup_key)}>
                                 Subscribe
                             </button>
                         </div>

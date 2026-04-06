@@ -4,6 +4,7 @@ import {useEffect, useState} from "react";
 import streamDownloadToFile from "./functions/StreamDownloadToFile";
 import retryAuth from "./functions/retryAuth";
 import BASE_URL from "../config.js";
+import "../styles/Global.css";
 
 export const Landing = () => {
 
@@ -158,6 +159,7 @@ export const Landing = () => {
                                 Create Your Notes Here:
                             </label>
                             <input
+                                className={"input-title"}
                                 name={"title"}
                                 placeholder=" Title"
                                 onChange={(e) => setTitle(e.target.value)} />
@@ -181,23 +183,25 @@ export const Landing = () => {
                             <p style={{ color: charRemaining < 0 ? 'red' : 'black' }}>
                                 {charRemaining} characters remaining
                             </p>
+                            <div className={"save-button"}>
+                                <button
+                                    className="regular-button"
+                                    type="button"
+                                    onClick={saveNoteToCloud}
+                                    disabled={loading}>
+                                    {loading ? "Saving..." : "Save"}
+                                </button>
+                            </div>
 
-                            <button
-                                className="create-note-button"
-                                type="button"
-                                onClick={saveNoteToCloud}
-                                disabled={loading}>
-                                {loading ? "Saving..." : "Save"}
-                            </button>
-
-
-                            <button
-                                className={"generate-study-guide-button"}
-                                type="button"
-                                onClick={generateStudyGuide}
-                                disabled={loading}>
-                                {loading ? "Generating..." : "Generate Study Guide"}
-                            </button>
+                            <div className={"ai-button"}>
+                                <button
+                                    className={"regular-button"}
+                                    type="button"
+                                    onClick={generateStudyGuide}
+                                    disabled={loading}>
+                                    {loading ? "Generating..." : "Generate Study Guide"}
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
