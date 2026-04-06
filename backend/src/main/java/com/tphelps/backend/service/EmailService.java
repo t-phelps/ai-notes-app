@@ -3,6 +3,7 @@ package com.tphelps.backend.service;
 import com.tphelps.backend.repository.EmailRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
@@ -16,15 +17,16 @@ import static org.apache.commons.codec.digest.DigestUtils.sha256Hex;
 @Service
 public class EmailService {
 
-    private final JavaMailSender mailSender;
-    private final EmailRepository emailRepository;
-
     private static final Logger logger = LoggerFactory.getLogger(EmailService.class);
 
     @Value("${spring.mail.username}") String sender;
     @Value("${salted.key}") String saltedKey;
     @Value("${front.end.url}") String frontEndUrl;
 
+    private final JavaMailSender mailSender;
+    private final EmailRepository emailRepository;
+
+    @Autowired
     public EmailService(JavaMailSender mailSender, EmailRepository emailRepository) {
         this.mailSender = mailSender;
         this.emailRepository = emailRepository;
