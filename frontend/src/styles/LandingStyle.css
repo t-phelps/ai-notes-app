@@ -1,10 +1,19 @@
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
 .landing-container {
     display: flex;
-    flex-direction: row;       /* left + right side-by-side */
-    justify-content: center;   /* center whole container horizontally */
-    align-items: center;       /* center vertically */
-    height: 100vh;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+
+    min-height: 100vh;
     width: 100%;
+    padding: 40px;
 
     background-image: url("../images/pexels-pixabay-219692.jpg");
     background-size: cover;
@@ -17,35 +26,68 @@
     flex-direction: column;
     justify-content: center;
     align-items: center;
-    border: 1px black solid;
-    background-color: rgba(255, 255, 255, 0.7);
-    height: 80%;
-    width: 80%;
+
+    width: 50%;
+    max-width: 800px;
+    min-width: 400px;
+
+    padding: 30px;
     border-radius: 30px;
+
+    background-color: rgba(255, 255, 255, 0.8);
+    border: 1px solid black;
 }
 
 .create-notes {
     display: flex;
     flex-direction: column;
-    justify-content: left;
     align-items: center;
+    width: 100%;
 }
 
 .create-notes input {
+    width: 25%;
+    max-width: 500px;
+
     border-radius: 8px;
     border: none;
-    padding: 3px;
+    padding: 8px;
+    margin-bottom: 10px;
 }
 
 .create-notes textarea {
-    height: 500px;
-    width: 500px;
-    margin-top: 5px;
+    width: 100%;
+    max-width: 500px;
+    height: 400px;
+
     border-radius: 8px;
     border: none;
-    padding: 5px;
+    padding: 10px;
+    margin-top: 5px;
 }
 
-.generate-study-guide-button{
+.save-button {
+    margin-bottom: 10px;
+}
+
+.generate-study-guide-button {
     margin-top: 5px;
+}
+
+/* ===== MOBILE FIX ===== */
+@media (max-width: 768px) {
+    .landing-container {
+        flex-direction: column;   /* stack on mobile */
+        padding: 15px;
+    }
+
+    .main-section {
+        width: 95%;
+        min-width: unset;         /* IMPORTANT: removes crushing rule */
+        padding: 20px;
+    }
+
+    .create-notes textarea {
+        height: 200px;            /* smaller for mobile */
+    }
 }
