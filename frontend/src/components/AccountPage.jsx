@@ -6,6 +6,8 @@ import { NavBar } from "./NavBar.jsx";
 import streamDownloadToFile from "./functions/StreamDownloadToFile";
 import retryAuth from "./functions/retryAuth";
 import moment from "moment";
+import { SimpleTreeView } from "@mui/x-tree-view/SimpleTreeView";
+import { TreeItem } from '@mui/x-tree-view/TreeItem';
 import BASE_URL from "../config.js";
 
 export const AccountPage = () => {
@@ -178,29 +180,38 @@ export const AccountPage = () => {
         }
     }
 
-    function renderClusters(map) {
-        const elements = [];
-
-        for (const [noteId, noteSet] of map) {
-            elements.push(
-                <div key={noteId}>
-                    <strong>{noteId}</strong>
-                    <div>
-                        {[...noteSet].map((item) => (
-                            <div key={item}>
-                                <div>Title: {item}</div>
-                                <button
-                                    onClick={() => downloadDocument(item)}
-                                    disabled={loading}>
-                                    {loading ? "Downloading..." : "Download"}
-                                </button>
-                            </div>
-                        ))}
-                    </div>
-                </div>
+    const renderDirectories = (clusteredNotes) => {
+        return Array.from(clusteredNotes).map(([key, valueSet], clusterIdx) => {
+            const valueArr = Array.from(valueSet);
+            return (
+                <TreeItem
+                    key={`cluster-${clusterIdx}`}
+                    itemId={`cluster-${clusterIdx}`}
+                    label={key}
+                >
+                    {valueArr.map((noteTitle, noteIdx) => (
+                        <TreeItem
+                            key={`note-${clusterIdx}-${noteIdx}`}
+                            itemId={`note-${clusterIdx}-${noteIdx}`}        // MUI requires itemId to be unique
+                            label={
+                                <div className={"title-display"}>
+                                    <span>{noteTitle}</span>
+                                    <button className={"regular-button"}
+                                            disabled={loading}
+                                            onClick={(e) => {
+                                                e.preventDefault(); // prevent tree collapse
+                                                downloadDocument(noteTitle);
+                                            }}
+                                    >
+                                        {loading ? "Downloading..." : "Download"}
+                                    </button>
+                                </div>
+                            }
+                        />
+                    ))}
+                </TreeItem>
             );
-        }
-        return elements;
+        })
     }
 
     return (
@@ -242,7 +253,7 @@ export const AccountPage = () => {
                             />
 
                             <button
-                                className="change-pwd-btn"
+                                className="regular-button"
                                 type="submit"
                                 disabled={loading}>
                                 {loading ? "Changing..." : "Change Password"}
@@ -270,7 +281,7 @@ export const AccountPage = () => {
                             />
 
                             <button
-                                className="account-delete-btn"
+                                className="regular-button"
                                 type="submit"
                                 disabled={loading}>
                                 {loading ? "Deleting..." : "Delete"}
@@ -286,7 +297,9 @@ export const AccountPage = () => {
                         <p>No notes yet.</p>
                     ) : (
                         <>
-                            {renderClusters(clusteredNotes)}
+                            <SimpleTreeView>
+                                {renderDirectories(clusteredNotes)}
+                            </SimpleTreeView>
                         </>
                         )
                     }

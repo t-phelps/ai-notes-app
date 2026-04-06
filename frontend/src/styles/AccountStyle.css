@@ -91,6 +91,16 @@
     width: 30%;
 }
 
+.account-change-password button {
+    margin-top: 10px;
+    width: 30%;
+}
+
+.title-display button {
+    margin-left: 5px;
+    padding: 3px;
+}
+
 .account-delete-btn:hover {
     background-color: red;
 }
