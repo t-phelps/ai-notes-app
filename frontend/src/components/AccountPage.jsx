@@ -9,6 +9,7 @@ import moment from "moment";
 import { SimpleTreeView } from "@mui/x-tree-view/SimpleTreeView";
 import { TreeItem } from '@mui/x-tree-view/TreeItem';
 import BASE_URL from "../config.js";
+import {toastServerError} from "./ToastFunctions";
 
 export const AccountPage = () => {
     const navigate = useNavigate();
@@ -117,12 +118,14 @@ export const AccountPage = () => {
             };
             const response = await retryAuth(`${BASE_URL}/account/change-password`, options);
 
-            if (!response.ok) throw new Error("Failed to change password");
+            if (!response.ok) {
+                toastServerError();
+                throw new Error(`Error occurred with status ${response.status}`);
+            }
 
             setOldPassword("");
             navigate("/");
         } catch (error) {
-
             console.error(error);
         } finally {
             setLoading(false);
@@ -148,7 +151,10 @@ export const AccountPage = () => {
             }
             const response = await retryAuth(`${BASE_URL}/account/delete`, options);
 
-            if (!response.ok) throw new Error("Failed to delete account");
+            if (!response.ok) {
+                toastServerError();
+                throw new Error(`Error occurred with status ${response.status}`);
+            }
             navigate("/");
         } catch (error) {
             console.error(error);
@@ -171,6 +177,11 @@ export const AccountPage = () => {
                 })
             }
             let response = await retryAuth(`${BASE_URL}/notes/download-note`, options);
+
+            if(!response.ok){
+                toastServerError();
+                throw new Error(`Error occurred with status ${response.status}`);
+            }
 
             await streamDownloadToFile(response, title + ".txt")
         }catch(err){

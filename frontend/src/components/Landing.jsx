@@ -5,6 +5,7 @@ import streamDownloadToFile from "./functions/StreamDownloadToFile";
 import retryAuth from "./functions/retryAuth";
 import BASE_URL from "../config.js";
 import "../styles/Global.css";
+import {toastBadRequest, toastServerError, toastSuccess, toastUnauthorizedUser} from "./ToastFunctions";
 
 export const Landing = () => {
 
@@ -85,16 +86,17 @@ export const Landing = () => {
 
             if (!response.ok) {
                 rollbackSet(title);
-                const errorData = await response.json().catch(() => ({}));
-                setError(errorData.message || `Request failed with status ${response.status}`);
-                return;
+
+                response.status === 400
+                ? toastBadRequest()
+                    : toastServerError();
+
+                throw new Error(`Unexpected error occurred: ${response.status}`);
             }
 
-            alert("Successfully Saved To The Cloud!");
+            toastSuccess("Successfully Saved To The Cloud!");
         } catch (err) {
-            rollbackSet(title);
-            console.error("Request failed:", err);
-            setError(err.message || "Network Error. Please try again.");
+            console.error(err.message);
         } finally{
             setLoading(false);
         }
@@ -132,12 +134,22 @@ export const Landing = () => {
             };
             let response = await retryAuth(`${BASE_URL}/notes/generate-study-guide`, options);
 
-            if(response.status === 403){
-                alert("Unauthorized to utilize this feature. Please purchase a subscription");
-                return;
-            }
             if (!response.ok) {
-                throw new Error(response.statusText);
+                switch(response.status) {
+                    case 400: {
+                        toastBadRequest();
+                        break;
+                    }
+                    case 403: {
+                        toastUnauthorizedUser("You must purchase a subscription for this feature!")
+                        break;
+                    }
+                    default: {
+                        toastServerError();
+                    }
+                }
+
+                throw new Error(`Unexpected error occurred: ${response.status}`);
             }
 
             await streamDownloadToFile(response, "studyGuide.txt");
