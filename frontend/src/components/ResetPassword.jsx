@@ -4,6 +4,7 @@ import * as yup from "yup";
 import { useSearchParams} from "react-router-dom";
 import {useNavigate} from "react-router-dom";
 import BASE_URL from "../config.js";
+import {toastServerError, toastSuccess} from "./ToastFunctions";
 
 export const ResetPassword = () => {
     const schema = yup.object().shape({
@@ -34,7 +35,7 @@ export const ResetPassword = () => {
             await schema.validate({password, confirmPassword});
 
             if(!token){
-                alert("Invalid token");
+                setError("Invalid token");
                 return;
             }
 
@@ -48,11 +49,11 @@ export const ResetPassword = () => {
             })
 
             if(!response.ok) {
-                setError("Password reset failed");
-                return;
+                toastServerError();
+                throw new Error(`Error occurred with status ${response.status}`);
             }
 
-            alert("Reset password reset successfully.");
+            toastSuccess("Reset password reset successfully.");
             navigate("/")
         }catch(err){
             console.error(err);

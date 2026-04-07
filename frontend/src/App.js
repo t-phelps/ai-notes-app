@@ -12,44 +12,46 @@ import { Payment } from "./components/Payment.jsx";
 import { ResetPassword } from "./components/ResetPassword";
 import { ProtectedRoute } from "./components/Protectedroute.jsx";
 import {Legal} from "./components/Legal.jsx";
+import {ToastContainer} from "react-toastify";
 
 function App() {
     return (
         <BrowserRouter>
-            <Routes>
-                {/* Public routes */}
-                <Route path="/" element={<LoginComponent />} />
-                <Route path="/reset-password" element={<ResetPasswordWithEmail />} />
-                <Route path="/create-account" element={<Signup />} />
-                <Route path="/reset" element={<ResetPassword />} />
-                <Route path={"/legal"} element={<Legal />} />
+            <ToastContainer />
+                <Routes>
+                    {/* Public routes */}
+                    <Route path="/" element={<LoginComponent />} />
+                    <Route path="/reset-password" element={<ResetPasswordWithEmail />} />
+                    <Route path="/create-account" element={<Signup />} />
+                    <Route path="/reset" element={<ResetPassword />} />
+                    <Route path={"/legal"} element={<Legal />} />
 
-                {/* Protected routes */}
-                <Route
-                    path="/landing"
-                    element={
-                        <ProtectedRoute>
-                            <Landing />
-                        </ProtectedRoute>
-                    }
-                />
-                <Route
-                    path="/account"
-                    element={
-                        <ProtectedRoute>
-                            <AccountPage />
-                        </ProtectedRoute>
-                    }
-                />
-                <Route
-                    path="/payment"
-                    element={
-                        <ProtectedRoute>
-                            <Payment />
-                        </ProtectedRoute>
-                    }
-                />
-            </Routes>
+                    {/* Protected routes */}
+                    <Route
+                        path="/landing"
+                        element={
+                            <ProtectedRoute>
+                                <Landing />
+                            </ProtectedRoute>
+                        }
+                    />
+                    <Route
+                        path="/account"
+                        element={
+                            <ProtectedRoute>
+                                <AccountPage />
+                            </ProtectedRoute>
+                        }
+                    />
+                    <Route
+                        path="/payment"
+                        element={
+                            <ProtectedRoute>
+                                <Payment />
+                            </ProtectedRoute>
+                        }
+                    />
+                </Routes>
         </BrowserRouter>
     );
 }

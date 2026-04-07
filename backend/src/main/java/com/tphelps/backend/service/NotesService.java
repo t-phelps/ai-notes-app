@@ -138,7 +138,7 @@ public class NotesService {
     public void validateUsersSubscription(String username) throws UnauthorizedUserException {
         com.tphelps.backend.controller.pojos.SubscriptionData data = customUserDetailsService.getUserSubscriptionData(username);
 
-        if(data.status() == null || !SubscriptionStatus.ACTIVE.getValue().equals(data.status()) || data.generations_left() <= 0) {
+        if(data == null || !SubscriptionStatus.ACTIVE.getValue().equals(data.status()) || data.generations_left() <= 0) {
             throw new UnauthorizedUserException("User subscription status is inactive");
         }
     }

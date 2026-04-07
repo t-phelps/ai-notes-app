@@ -223,11 +223,7 @@ public class CustomUserDetailsService implements UserDetailsService {
      * @throws EmptyResultDataAccessException - if jooq doesn't find a row
      */
     public SubscriptionData getUserSubscriptionData(String username) throws EmptyResultDataAccessException{
-        SubscriptionData subscriptionData = accountRepository.getSubscriptionStatus(username);
-        if(subscriptionData == null){
-            throw new EmptyResultDataAccessException(1);
-        }
-        return subscriptionData;
+        return accountRepository.getSubscriptionStatus(username);
     }
 
     /**

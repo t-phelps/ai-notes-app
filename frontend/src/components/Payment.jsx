@@ -2,7 +2,7 @@ import "../styles/PaymentStyle.css";
 import {NavBar} from "./NavBar";
 import retryAuth from "./functions/retryAuth";
 import BASE_URL from "../config.js";
-
+import {toastServerError} from "./ToastFunctions"
 export const Payment = () => {
 
     const paymentKeysMap = new Map();
@@ -47,7 +47,8 @@ export const Payment = () => {
                 window.location.href = data.url;
 
             } else if (data.error) {
-                throw new Error("Error creating Stripe session");
+                toastServerError();
+                throw new Error(`Error creating Stripe session ${response.status}`);
             }
         }catch(err){
             console.error(err);
@@ -65,14 +66,17 @@ export const Payment = () => {
                 credentials: "include",
             });
 
-            if (!response.ok) throw new Error("Error creating Stripe Portal session");
+            if (!response.ok) {
+                toastServerError();
+                throw new Error(`Error creating Stripe session ${response.status}`);
+            }
 
             const data = await response.json();
             if (data.url) {
-
                 window.location.href = data.url;
             }else if(data.error) {
-                throw new Error("Error creating Stripe Portal session");
+                toastServerError();
+                throw new Error(`Error creating Stripe session ${response.status}`);
             }
         }catch(err){
             console.error(err);

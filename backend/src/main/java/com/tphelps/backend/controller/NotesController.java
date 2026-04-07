@@ -73,7 +73,9 @@ public class NotesController {
             notesService.saveNotesToCloud(notes, userDetails.getUsername());
             return ResponseEntity.ok().build();
         }catch(IllegalStateException | EmptyResultDataAccessException | IOException e){
-            logger.error("Exception caught while saving notes to cloud for user={}", userDetails.getUsername());
+            logger.error("Exception caught while saving notes to cloud for user={} with exception={}",
+                    userDetails.getUsername(),
+                    e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
@@ -186,9 +188,8 @@ public class NotesController {
             return ResponseEntity.status(403).build();
 
         } catch(EmptyResultDataAccessException e){
-
             logger.error("Empty result for decrementing generations_left for user={}", username);
-            return  ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+            return  ResponseEntity.status(500).build();
 
         } catch(Exception e){
 
